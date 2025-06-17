@@ -1,4 +1,5 @@
 #!/bin/bash
+echo "✅ Superset Init Script Started..."
 
 # Create Admin user (won’t crash if user already exists)
 superset fab create-admin \
