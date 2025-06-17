@@ -32,5 +32,7 @@ RUN chmod +x /app/superset_init.sh
 
 USER superset
 
+ENV CACHE_BUSTER=20250617A
+
 # Start using the init script
 CMD ["/app/superset_init.sh"]
