@@ -30,4 +30,5 @@ ENV SECRET_KEY $SECRET_KEY
 
 USER superset
 
-ENTRYPOINT [ "./superset_init.sh" ]
+CMD ["superset", "run", "-h", "0.0.0.0", "-p", "8088"]
+
