@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 RUN pip install mysqlclient psycopg2 pymysql
+RUN pip install shillelagh[gsheetsapi]
 
 COPY requirements.txt /app/
 RUN pip install --no-cache-dir -r /app/requirements.txt || true
