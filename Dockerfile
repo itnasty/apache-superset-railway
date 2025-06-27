@@ -17,8 +17,10 @@ RUN mkdir -p /app/data && chown -R superset:superset /app/data
 # Copy requirements first for better Docker layer caching
 COPY requirements.txt /app/
 
-# Activate virtual environment and install packages
-RUN . /app/.venv/bin/activate && pip install --no-cache-dir -r /app/requirements.txt
+# Activate virtual environment and install packages with force reinstall to ensure psycopg2-binary is available
+RUN . /app/.venv/bin/activate && \
+    pip install --no-cache-dir --force-reinstall psycopg2-binary==2.9.9 && \
+    pip install --no-cache-dir -r /app/requirements.txt
 
 # Copy configuration files
 COPY config/superset_config.py /app/
