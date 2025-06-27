@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y \
     libmariadb-dev \
     default-libmysqlclient-dev \
     build-essential \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Create data directory for SQLite fallback and set permissions
