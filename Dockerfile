@@ -2,13 +2,14 @@ FROM apache/superset:latest
 
 USER root
 
-# Install system dependencies
+# Install system dependencies including PostgreSQL development libraries
 RUN apt-get update && apt-get install -y \
     pkg-config \
     libmariadb-dev \
     default-libmysqlclient-dev \
     build-essential \
     libpq-dev \
+    postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
 # Create data directory for SQLite fallback and set permissions
@@ -17,11 +18,16 @@ RUN mkdir -p /app/data && chown -R superset:superset /app/data
 # Copy requirements first for better Docker layer caching
 COPY requirements.txt /app/
 
-# Fix psycopg2 issue by ensuring it's installed in the virtual environment
-RUN /app/.venv/bin/pip uninstall -y psycopg2 psycopg2-binary || true && \
-    /app/.venv/bin/pip install --no-cache-dir psycopg2-binary==2.9.9 && \
-    /app/.venv/bin/pip install --no-cache-dir -r /app/requirements.txt && \
-    /app/.venv/bin/python -c "import psycopg2; print('psycopg2 imported successfully')"
+# The Apache Superset base image has Python and pip, but the virtual environment
+# is created later. We need to install psycopg2-binary in the system Python first
+RUN pip install --no-cache-dir psycopg2-binary==2.9.9 && \
+    pip install --no-cache-dir -r /app/requirements.txt
+
+# If virtual environment exists, also install there
+RUN if [ -d "/app/.venv" ]; then \
+        /app/.venv/bin/pip install --no-cache-dir psycopg2-binary==2.9.9 && \
+        /app/.venv/bin/pip install --no-cache-dir -r /app/requirements.txt; \
+    fi
 
 # Copy configuration files
 COPY config/superset_config.py /app/
