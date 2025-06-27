@@ -1,6 +1,7 @@
 # Database drivers
 pymysql==1.1.1
 psycopg2-binary==2.9.9
+psycopg2==2.9.9
 mysqlclient==2.2.4
 
 # Additional dependencies for Railway deployment
