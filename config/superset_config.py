@@ -8,10 +8,10 @@ ENABLE_PROXY_FIX = True
 
 SECRET_KEY = os.environ.get("SECRET_KEY")
 
-# Database configuration - Railway provides DATABASE_URL, fallback to our default
-DATABASE_URL = os.environ.get("DATABASE_URL")
+# Database configuration - Railway provides DATABASE variable
+DATABASE_URL = os.environ.get("DATABASE") or os.environ.get("DATABASE_URL")
 if not DATABASE_URL:
-    # Fallback to SQLite if no DATABASE_URL is provided
+    # Fallback to SQLite if no database is provided
     DATABASE_URL = "sqlite:////app/data/superset.db"
 
 SQLALCHEMY_DATABASE_URI = DATABASE_URL
