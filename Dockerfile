@@ -18,16 +18,9 @@ RUN mkdir -p /app/data && chown -R superset:superset /app/data
 # Copy requirements first for better Docker layer caching
 COPY requirements.txt /app/
 
-# The Apache Superset base image has Python and pip, but the virtual environment
-# is created later. We need to install psycopg2-binary in the system Python first
+# Install Python packages system-wide
 RUN pip install --no-cache-dir psycopg2-binary==2.9.9 && \
     pip install --no-cache-dir -r /app/requirements.txt
-
-# If virtual environment exists, also install there
-RUN if [ -d "/app/.venv" ]; then \
-        /app/.venv/bin/pip install --no-cache-dir psycopg2-binary==2.9.9 && \
-        /app/.venv/bin/pip install --no-cache-dir -r /app/requirements.txt; \
-    fi
 
 # Copy configuration files
 COPY config/superset_config.py /app/
@@ -39,6 +32,7 @@ RUN chown -R superset:superset /app
 
 # Only set the config path - Railway provides all other environment variables
 ENV SUPERSET_CONFIG_PATH=/app/superset_config.py
+ENV PYTHONPATH=/usr/local/lib/python3.10/site-packages:$PYTHONPATH
 
 USER superset
 
