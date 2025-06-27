@@ -15,7 +15,9 @@ RUN mkdir -p /app/data && chown -R superset:superset /app/data
 
 # Copy requirements first for better Docker layer caching
 COPY requirements.txt /app/
-RUN pip install --no-cache-dir -r /app/requirements.txt
+
+# Install packages in the existing virtual environment
+RUN /app/.venv/bin/pip install --no-cache-dir -r /app/requirements.txt
 
 # Copy configuration files
 COPY config/superset_config.py /app/
