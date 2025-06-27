@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Create data directory for SQLite and set permissions
+# Create data directory for SQLite fallback and set permissions
 RUN mkdir -p /app/data && chown -R superset:superset /app/data
 
 # Copy requirements first for better Docker layer caching
@@ -25,14 +25,8 @@ RUN chmod +x /app/superset_init.sh
 # Set ownership of app directory to superset user
 RUN chown -R superset:superset /app
 
-# Environment variables
-ENV ADMIN_USERNAME=admin
-ENV ADMIN_EMAIL=admin@example.com
-ENV ADMIN_PASSWORD=admin
-ENV SECRET_KEY=mysecretkey
+# Only set the config path - Railway provides all other environment variables
 ENV SUPERSET_CONFIG_PATH=/app/superset_config.py
-# Use a writable directory for SQLite
-ENV DATABASE_URL=sqlite:////app/data/superset.db
 
 USER superset
 
