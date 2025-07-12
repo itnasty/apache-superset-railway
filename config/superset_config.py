@@ -1,5 +1,7 @@
 import os
 
+MAPBOX_API_KEY = os.getenv("MAPBOX_API_KEY", "")
+
 FEATURE_FLAGS = {
     "ENABLE_TEMPLATE_PROCESSING": True,
 }
