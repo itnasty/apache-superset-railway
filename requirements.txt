@@ -8,3 +8,14 @@ redis==5.0.7
 
 # CORS support
 flask-cors==4.0.0
+
+# Production server
+gunicorn[gevent]==21.2.0
+gevent==23.9.1
+
+# Performance improvements
+msgpack==1.0.7
+python-dotenv==1.0.0
+
+# Better async support
+greenlet==3.0.1
