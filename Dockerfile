@@ -2,7 +2,7 @@ FROM apache/superset:latest
 
 USER root
 
-# Install system dependencies including PostgreSQL development libraries
+# Install system dependencies including network debugging tools
 RUN apt-get update && apt-get install -y \
     pkg-config \
     libmariadb-dev \
@@ -10,6 +10,12 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     libpq-dev \
     postgresql-client \
+    curl \
+    wget \
+    netcat \
+    telnet \
+    dnsutils \
+    iputils-ping \
     && rm -rf /var/lib/apt/lists/*
 
 # Create data directory for SQLite fallback and set permissions
@@ -27,13 +33,24 @@ COPY config/superset_config.py /app/
 COPY config/superset_init.sh /app/superset_init.sh
 RUN chmod +x /app/superset_init.sh
 
+# Copy diagnostic script
+COPY diagnose_dashboard_issues.py /app/diagnose_dashboard_issues.py
+
 # Set ownership of app directory to superset user
 RUN chown -R superset:superset /app
+
+# Install additional packages for debugging
+RUN pip install --no-cache-dir httpie requests
 
 # Only set the config path - Railway provides all other environment variables
 ENV SUPERSET_CONFIG_PATH=/app/superset_config.py
 ENV PYTHONPATH=/usr/local/lib/python3.10/site-packages:$PYTHONPATH
+ENV FLASK_ENV=development
 
 USER superset
+
+# Add healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD curl -f http://localhost:${PORT:-8088}/health || exit 1
 
 CMD ["/bin/bash", "/app/superset_init.sh"]
