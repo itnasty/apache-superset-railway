@@ -130,12 +130,28 @@ if feature_flags:
             # If still fails, use default
             FEATURE_FLAGS = {
                 "ENABLE_TEMPLATE_PROCESSING": True,
-                "ENABLE_JAVASCRIPT_CONTROLS": True
+                "ENABLE_JAVASCRIPT_CONTROLS": True,
+                "DASHBOARD_CROSS_FILTERS": True,
+                "DASHBOARD_RBAC": True,
+                "EMBEDDABLE_CHARTS": True,
+                "SCHEDULED_QUERIES": True,
+                "ESTIMATE_QUERY_COST": True,
+                "GLOBAL_ASYNC_QUERIES": True,
+                "DASHBOARD_VIRTUALIZATION": False,
+                "DISABLE_DATASET_SOURCE_EDIT": False
             }
 else:
     FEATURE_FLAGS = {
         "ENABLE_TEMPLATE_PROCESSING": True,
-        "ENABLE_JAVASCRIPT_CONTROLS": True
+        "ENABLE_JAVASCRIPT_CONTROLS": True,
+        "DASHBOARD_CROSS_FILTERS": True,
+        "DASHBOARD_RBAC": True,
+        "EMBEDDABLE_CHARTS": True,
+        "SCHEDULED_QUERIES": True,
+        "ESTIMATE_QUERY_COST": True,
+        "GLOBAL_ASYNC_QUERIES": True,
+        "DASHBOARD_VIRTUALIZATION": False,
+        "DISABLE_DATASET_SOURCE_EDIT": False
     }
 
 # Security settings
@@ -157,10 +173,12 @@ else:
 WTF_CSRF_EXEMPT_LIST.extend([
     "superset.charts.data.api.ChartDataRestApi.data",
     "superset.charts.data.api.ChartDataRestApi.get_data",
-    "superset.charts.data.api.ChartDataRestApi.data_from_cache"
+    "superset.charts.data.api.ChartDataRestApi.data_from_cache",
+    "superset.dashboards.api",
+    "superset.explore.api"
 ])
 
-# CORS settings
+# CORS settings - CRITICAL FOR RAILWAY
 ENABLE_CORS = os.environ.get("ENABLE_CORS", "True").lower() == "true"
 cors_options = os.environ.get("CORS_OPTIONS")
 if cors_options:
@@ -170,13 +188,17 @@ if cors_options:
         CORS_OPTIONS = {
             "supports_credentials": True,
             "allow_headers": ["*"],
-            "origins": ["*"]
+            "expose_headers": ["X-CSRFToken"],
+            "origins": ["*"],
+            "methods": ["GET", "HEAD", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"]
         }
 else:
     CORS_OPTIONS = {
         "supports_credentials": True,
         "allow_headers": ["*"],
-        "origins": ["*"]
+        "expose_headers": ["X-CSRFToken"],
+        "origins": ["*"],
+        "methods": ["GET", "HEAD", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"]
     }
 
 # HTTP Headers
@@ -186,14 +208,30 @@ if http_headers:
         HTTP_HEADERS = json.loads(http_headers)
     except json.JSONDecodeError:
         pass
+else:
+    HTTP_HEADERS = {}
 
-# Proxy configuration
+# Proxy configuration for Railway
 proxy_fix_config = os.environ.get("PROXY_FIX_CONFIG")
 if proxy_fix_config:
     try:
         PROXY_FIX_CONFIG = json.loads(proxy_fix_config)
     except json.JSONDecodeError:
-        pass
+        PROXY_FIX_CONFIG = {
+            "x_for": 1,
+            "x_proto": 1,
+            "x_host": 1,
+            "x_port": 1,
+            "x_prefix": 1
+        }
+else:
+    PROXY_FIX_CONFIG = {
+        "x_for": 1,
+        "x_proto": 1,
+        "x_host": 1,
+        "x_port": 1,
+        "x_prefix": 1
+    }
 
 # Query and row limits
 ROW_LIMIT = int(os.environ.get("ROW_LIMIT", 50000))
@@ -204,27 +242,30 @@ SQL_MAX_ROW = int(os.environ.get("SQL_MAX_ROW", 100000))
 DEFAULT_SQLLAB_LIMIT = int(os.environ.get("DEFAULT_SQLLAB_LIMIT", 1000))
 SUPERSET_META_DB_LIMIT = int(os.environ.get("SUPERSET_META_DB_LIMIT", 1000))
 
-# Timeouts
-WEB_QUERY_TIMEOUT = int(os.environ.get("WEB_QUERY_TIMEOUT", 300))
-DATABASE_QUERY_TIMEOUT = int(os.environ.get("DATABASE_QUERY_TIMEOUT", 60))
-SUPERSET_WEBSERVER_TIMEOUT = int(os.environ.get("SUPERSET_WEBSERVER_TIMEOUT", 300))
+# INCREASED TIMEOUTS FOR RAILWAY
+WEB_QUERY_TIMEOUT = int(os.environ.get("WEB_QUERY_TIMEOUT", 600))  # Increased from 300
+DATABASE_QUERY_TIMEOUT = int(os.environ.get("DATABASE_QUERY_TIMEOUT", 120))  # Increased from 60
+SUPERSET_WEBSERVER_TIMEOUT = int(os.environ.get("SUPERSET_WEBSERVER_TIMEOUT", 600))  # Increased from 300
+SQLLAB_TIMEOUT = int(os.environ.get("SQLLAB_TIMEOUT", 600))  # Added
+SQLLAB_ASYNC_TIME_LIMIT_SEC = int(os.environ.get("SQLLAB_ASYNC_TIME_LIMIT_SEC", 43200))  # 12 hours
 
-# Async queries
+# Async queries configuration - IMPROVED FOR DASHBOARDS
 GLOBAL_ASYNC_QUERIES = os.environ.get("GLOBAL_ASYNC_QUERIES", "True").lower() == "true"
 SUPERSET_LOAD_CHART_ASYNC = os.environ.get("SUPERSET_LOAD_CHART_ASYNC", "True").lower() == "true"
 
-# Global async queries transport
+# Global async queries transport - CRITICAL FOR RAILWAY
 GLOBAL_ASYNC_QUERIES_TRANSPORT = os.environ.get("GLOBAL_ASYNC_QUERIES_TRANSPORT", "polling")
+GLOBAL_ASYNC_QUERIES_POLLING_DELAY = int(os.environ.get("GLOBAL_ASYNC_QUERIES_POLLING_DELAY", 500))
 
 # Webserver domains
 superset_webserver_domains = os.environ.get("SUPERSET_WEBSERVER_DOMAINS")
 if superset_webserver_domains:
     SUPERSET_WEBSERVER_DOMAINS = superset_webserver_domains.split(",")
 
-# Session configuration
-SESSION_COOKIE_SAMESITE = os.environ.get("SESSION_COOKIE_SAMESITE", "None")
-SESSION_COOKIE_SECURE = os.environ.get("SESSION_COOKIE_SECURE", "False").lower() == "true"
-SESSION_COOKIE_HTTPONLY = os.environ.get("SESSION_COOKIE_HTTPONLY", "False").lower() == "true"
+# Session configuration - FIXED FOR RAILWAY
+SESSION_COOKIE_SAMESITE = os.environ.get("SESSION_COOKIE_SAMESITE", "Lax")  # Changed from None
+SESSION_COOKIE_SECURE = os.environ.get("SESSION_COOKIE_SECURE", "True").lower() == "true"  # Changed to True
+SESSION_COOKIE_HTTPONLY = os.environ.get("SESSION_COOKIE_HTTPONLY", "True").lower() == "true"  # Changed to True
 
 # Preferred URL scheme
 PREFERRED_URL_SCHEME = os.environ.get("PREFERRED_URL_SCHEME", "https")
@@ -239,8 +280,8 @@ GUEST_ROLE_NAME = os.environ.get("GUEST_ROLE_NAME", "Gamma")
 # Disable some features that might cause issues in containerized environments
 ENABLE_CHUNK_ENCODING = False
 
-# Chart load configuration
-CONCURRENT_CHART_LOAD_LIMIT = int(os.environ.get("CONCURRENT_CHART_LOAD_LIMIT", 4))
+# INCREASED CHART LOAD LIMIT FOR DASHBOARDS
+CONCURRENT_CHART_LOAD_LIMIT = int(os.environ.get("CONCURRENT_CHART_LOAD_LIMIT", 8))  # Increased from 4
 
 # Additional module DS map
 additional_module_ds_map = os.environ.get("ADDITIONAL_MODULE_DS_MAP")
@@ -250,7 +291,7 @@ if additional_module_ds_map:
     except json.JSONDecodeError:
         pass
 
-# Dashboard virtualization
+# Dashboard virtualization - Keep disabled for now
 DASHBOARD_VIRTUALIZATION = os.environ.get("DASHBOARD_VIRTUALIZATION", "False").lower() == "true"
 
 # Preferred databases
@@ -273,3 +314,32 @@ CONTENT_SECURITY_POLICY_WARNING = False
 
 # Ensure all API endpoints work properly
 API_ENABLE_CORS = True
+
+# Additional settings for Railway deployment
+COMPRESS_ENABLED = True
+COMPRESS_REGISTER = True
+
+# Gunicorn worker configuration (if using gunicorn)
+GUNICORN_BIND = f"0.0.0.0:{os.environ.get('PORT', 8088)}"
+GUNICORN_WORKERS = int(os.environ.get("GUNICORN_WORKERS", 2))
+GUNICORN_WORKER_CLASS = os.environ.get("GUNICORN_WORKER_CLASS", "gevent")
+GUNICORN_TIMEOUT = int(os.environ.get("GUNICORN_TIMEOUT", 600))
+GUNICORN_KEEPALIVE = int(os.environ.get("GUNICORN_KEEPALIVE", 2))
+GUNICORN_MAX_REQUESTS = int(os.environ.get("GUNICORN_MAX_REQUESTS", 1000))
+GUNICORN_MAX_REQUESTS_JITTER = int(os.environ.get("GUNICORN_MAX_REQUESTS_JITTER", 50))
+
+# Prevent URL encoding issues
+SEND_FILE_MAX_AGE_DEFAULT = int(os.environ.get("SEND_FILE_MAX_AGE_DEFAULT", 86400))
+
+# Chart cache configuration
+CHART_CACHE_CONFIG = {
+    'CACHE_TYPE': 'SimpleCache',
+    'CACHE_DEFAULT_TIMEOUT': 86400,
+}
+
+# Dashboard filter configuration
+DASHBOARD_NATIVE_FILTERS_SET = True
+DEFAULT_FEATURE_FLAGS = {
+    "DASHBOARD_NATIVE_FILTERS": True,
+    "DASHBOARD_NATIVE_FILTERS_SET": True,
+}
