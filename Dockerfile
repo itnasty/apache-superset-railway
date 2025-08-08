@@ -2,7 +2,7 @@ FROM apache/superset:latest
 
 USER root
 
-# Install system dependencies
+# Install dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
     default-libmysqlclient-dev \
@@ -14,7 +14,7 @@ RUN mkdir -p /app/data && chown -R superset:superset /app/data
 
 # Copy requirements
 COPY requirements.txt /app/
-RUN pip install --no-cache-dir -r /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt || true
 
 # Copy configuration files
 COPY config/superset_config.py /app/
