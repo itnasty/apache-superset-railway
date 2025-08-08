@@ -5,6 +5,7 @@ USER root
 # Install dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
+    pkg-config \
     default-libmysqlclient-dev \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
