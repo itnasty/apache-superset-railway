@@ -60,178 +60,134 @@ if REDIS_URL:
         }
     
     # Data cache configuration
-    data_cache_config = os.environ.get("DATA_CACHE_CONFIG")
-    if data_cache_config:
-        try:
-            DATA_CACHE_CONFIG = json.loads(data_cache_config)
-        except json.JSONDecodeError:
-            pass
+    DATA_CACHE_CONFIG = {
+        'CACHE_TYPE': 'RedisCache',
+        'CACHE_REDIS_URL': REDIS_URL,
+        'CACHE_DEFAULT_TIMEOUT': 86400,  # 24 hours
+        'CACHE_KEY_PREFIX': 'superset_data_'
+    }
     
     # Filter state cache configuration
-    filter_state_cache_config = os.environ.get("FILTER_STATE_CACHE_CONFIG")
-    if filter_state_cache_config:
-        try:
-            FILTER_STATE_CACHE_CONFIG = json.loads(filter_state_cache_config)
-        except json.JSONDecodeError:
-            pass
+    FILTER_STATE_CACHE_CONFIG = {
+        'CACHE_TYPE': 'RedisCache',
+        'CACHE_REDIS_URL': REDIS_URL,
+        'CACHE_DEFAULT_TIMEOUT': 86400,
+        'CACHE_KEY_PREFIX': 'superset_filter_'
+    }
     
     # Explore form data cache configuration
-    explore_form_data_cache_config = os.environ.get("EXPLORE_FORM_DATA_CACHE_CONFIG")
-    if explore_form_data_cache_config:
-        try:
-            EXPLORE_FORM_DATA_CACHE_CONFIG = json.loads(explore_form_data_cache_config)
-        except json.JSONDecodeError:
-            pass
-    
-    # Results backend configuration
-    results_backend = os.environ.get("RESULTS_BACKEND")
-    if results_backend:
-        try:
-            RESULTS_BACKEND = json.loads(results_backend)
-        except json.JSONDecodeError:
-            pass
-    
-    # Thumbnail cache configuration
-    thumbnail_cache_config = os.environ.get("THUMBNAIL_CACHE_CONFIG")
-    if thumbnail_cache_config:
-        try:
-            THUMBNAIL_CACHE_CONFIG = json.loads(thumbnail_cache_config)
-        except json.JSONDecodeError:
-            pass
-    
-    # Celery configuration
-    celery_config = os.environ.get("CELERY_CONFIG")
-    if celery_config:
-        try:
-            CELERY_CONFIG = json.loads(celery_config)
-        except json.JSONDecodeError:
-            pass
-    
-    # Rate limit storage
-    ratelimit_storage_uri = os.environ.get("RATELIMIT_STORAGE_URI")
-    if ratelimit_storage_uri:
-        RATELIMIT_STORAGE_URI = ratelimit_storage_uri
+    EXPLORE_FORM_DATA_CACHE_CONFIG = {
+        'CACHE_TYPE': 'RedisCache',
+        'CACHE_REDIS_URL': REDIS_URL,
+        'CACHE_DEFAULT_TIMEOUT': 86400,
+        'CACHE_KEY_PREFIX': 'superset_explore_'
+    }
+else:
+    # Use simple cache if no Redis
+    CACHE_CONFIG = {
+        'CACHE_TYPE': 'SimpleCache',
+        'CACHE_DEFAULT_TIMEOUT': 300,
+    }
+    DATA_CACHE_CONFIG = {
+        'CACHE_TYPE': 'SimpleCache',
+        'CACHE_DEFAULT_TIMEOUT': 86400,
+    }
+    FILTER_STATE_CACHE_CONFIG = {
+        'CACHE_TYPE': 'SimpleCache',
+        'CACHE_DEFAULT_TIMEOUT': 86400,
+    }
+    EXPLORE_FORM_DATA_CACHE_CONFIG = {
+        'CACHE_TYPE': 'SimpleCache',
+        'CACHE_DEFAULT_TIMEOUT': 86400,
+    }
 
 # Mapbox configuration
 MAPBOX_API_KEY = os.environ.get("MAPBOX_API_KEY", "")
 
-# Feature flags - handle both Python True/False and JSON true/false
+# Feature flags - CRITICAL DASHBOARD SETTINGS
+FEATURE_FLAGS = {
+    "ENABLE_TEMPLATE_PROCESSING": True,
+    "ENABLE_JAVASCRIPT_CONTROLS": True,
+    "DASHBOARD_CROSS_FILTERS": True,
+    "DASHBOARD_RBAC": True,
+    "EMBEDDABLE_CHARTS": True,
+    "SCHEDULED_QUERIES": True,
+    "ESTIMATE_QUERY_COST": True,
+    "GLOBAL_ASYNC_QUERIES": False,  # DISABLED for Railway
+    "DASHBOARD_VIRTUALIZATION": False,
+    "DISABLE_DATASET_SOURCE_EDIT": False,
+    "ENABLE_EXPLORE_JSON_CSRF_PROTECTION": False,
+    "DASHBOARD_NATIVE_FILTERS": True,
+    "DASHBOARD_NATIVE_FILTERS_SET": True,
+    "DISABLE_LEGACY_DATASOURCE_EDITOR": True,
+    "VERSIONED_EXPORT": True,
+    "DASHBOARD_CACHE": True,
+    "REMOVE_SLICE_LEVEL_LABEL_COLORS": False,
+    "ENABLE_REACT_CRUD_VIEWS": True,
+    "DISABLE_DATASET_SOURCE_EDIT": False,
+}
+
+# Override with environment variable if provided
 feature_flags = os.environ.get("SUPERSET_FEATURE_FLAGS")
 if feature_flags:
     try:
-        # First try to parse as JSON
-        FEATURE_FLAGS = json.loads(feature_flags)
+        FEATURE_FLAGS.update(json.loads(feature_flags))
     except json.JSONDecodeError:
-        # If that fails, try replacing Python booleans with JSON booleans
-        try:
-            feature_flags_fixed = feature_flags.replace("True", "true").replace("False", "false")
-            FEATURE_FLAGS = json.loads(feature_flags_fixed)
-        except json.JSONDecodeError:
-            # If still fails, use default
-            FEATURE_FLAGS = {
-                "ENABLE_TEMPLATE_PROCESSING": True,
-                "ENABLE_JAVASCRIPT_CONTROLS": True,
-                "DASHBOARD_CROSS_FILTERS": True,
-                "DASHBOARD_RBAC": True,
-                "EMBEDDABLE_CHARTS": True,
-                "SCHEDULED_QUERIES": True,
-                "ESTIMATE_QUERY_COST": True,
-                "GLOBAL_ASYNC_QUERIES": True,
-                "DASHBOARD_VIRTUALIZATION": False,
-                "DISABLE_DATASET_SOURCE_EDIT": False
-            }
-else:
-    FEATURE_FLAGS = {
-        "ENABLE_TEMPLATE_PROCESSING": True,
-        "ENABLE_JAVASCRIPT_CONTROLS": True,
-        "DASHBOARD_CROSS_FILTERS": True,
-        "DASHBOARD_RBAC": True,
-        "EMBEDDABLE_CHARTS": True,
-        "SCHEDULED_QUERIES": True,
-        "ESTIMATE_QUERY_COST": True,
-        "GLOBAL_ASYNC_QUERIES": True,
-        "DASHBOARD_VIRTUALIZATION": False,
-        "DISABLE_DATASET_SOURCE_EDIT": False
-    }
+        pass
 
 # Security settings
 ENABLE_PROXY_FIX = os.environ.get("ENABLE_PROXY_FIX", "True").lower() == "true"
 TALISMAN_ENABLED = os.environ.get("TALISMAN_ENABLED", "False").lower() == "true"
 WTF_CSRF_ENABLED = os.environ.get("WTF_CSRF_ENABLED", "False").lower() == "true"
+WTF_CSRF_TIME_LIMIT = None  # Disable CSRF time limit
 
-# CSRF settings
-csrf_exempt_list = os.environ.get("WTF_CSRF_EXEMPT_LIST")
-if csrf_exempt_list:
-    try:
-        WTF_CSRF_EXEMPT_LIST = json.loads(csrf_exempt_list)
-    except json.JSONDecodeError:
-        WTF_CSRF_EXEMPT_LIST = ["superset.views.api", "superset.views.core.api", "superset.charts.api.ChartRestApi.post"]
-else:
-    WTF_CSRF_EXEMPT_LIST = ["superset.views.api", "superset.views.core.api", "superset.charts.api.ChartRestApi.post"]
-
-# Add more CSRF exemptions for chart data endpoints
-WTF_CSRF_EXEMPT_LIST.extend([
-    "superset.charts.data.api.ChartDataRestApi.data",
-    "superset.charts.data.api.ChartDataRestApi.get_data",
-    "superset.charts.data.api.ChartDataRestApi.data_from_cache",
+# CSRF settings - VERY PERMISSIVE FOR DEBUGGING
+WTF_CSRF_EXEMPT_LIST = [
+    "superset.views.api",
+    "superset.views.core.api",
+    "superset.charts.api",
+    "superset.charts.data.api",
     "superset.dashboards.api",
-    "superset.explore.api"
-])
+    "superset.explore.api",
+    "superset.sqllab.api",
+    "superset.datasource.api",
+    "superset.queries.api",
+    "superset.datasets.api",
+    "superset.databases.api",
+    "superset.views.core.data",
+    "superset.views.core.get_data",
+    "superset.views.core.datasource",
+    "superset.connectors.sqla.views.TableModelView",
+    "superset.superset.views.core.Superset",
+    "superset.views.dashboard.api",
+    "superset.views.chart.api",
+]
 
-# CORS settings - CRITICAL FOR RAILWAY
-ENABLE_CORS = os.environ.get("ENABLE_CORS", "True").lower() == "true"
-cors_options = os.environ.get("CORS_OPTIONS")
-if cors_options:
-    try:
-        CORS_OPTIONS = json.loads(cors_options)
-    except json.JSONDecodeError:
-        CORS_OPTIONS = {
-            "supports_credentials": True,
-            "allow_headers": ["*"],
-            "expose_headers": ["X-CSRFToken"],
-            "origins": ["*"],
-            "methods": ["GET", "HEAD", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"]
-        }
-else:
-    CORS_OPTIONS = {
-        "supports_credentials": True,
-        "allow_headers": ["*"],
-        "expose_headers": ["X-CSRFToken"],
-        "origins": ["*"],
-        "methods": ["GET", "HEAD", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"]
-    }
+# CORS settings - MAXIMUM PERMISSIVENESS
+ENABLE_CORS = True
+CORS_OPTIONS = {
+    "supports_credentials": True,
+    "allow_headers": ["*"],
+    "expose_headers": ["*"],
+    "origins": ["*"],
+    "methods": ["GET", "HEAD", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"],
+    "send_wildcard": True,
+    "always_send": True,
+}
 
-# HTTP Headers
-http_headers = os.environ.get("HTTP_HEADERS")
-if http_headers:
-    try:
-        HTTP_HEADERS = json.loads(http_headers)
-    except json.JSONDecodeError:
-        pass
-else:
-    HTTP_HEADERS = {}
+# HTTP Headers - Disable security headers that might interfere
+HTTP_HEADERS = {}
+OVERRIDE_HTTP_HEADERS = {}
 
 # Proxy configuration for Railway
-proxy_fix_config = os.environ.get("PROXY_FIX_CONFIG")
-if proxy_fix_config:
-    try:
-        PROXY_FIX_CONFIG = json.loads(proxy_fix_config)
-    except json.JSONDecodeError:
-        PROXY_FIX_CONFIG = {
-            "x_for": 1,
-            "x_proto": 1,
-            "x_host": 1,
-            "x_port": 1,
-            "x_prefix": 1
-        }
-else:
-    PROXY_FIX_CONFIG = {
-        "x_for": 1,
-        "x_proto": 1,
-        "x_host": 1,
-        "x_port": 1,
-        "x_prefix": 1
-    }
+ENABLE_PROXY_FIX = True
+PROXY_FIX_CONFIG = {
+    "x_for": 1,
+    "x_proto": 1,
+    "x_host": 1,
+    "x_port": 1,
+    "x_prefix": 1
+}
 
 # Query and row limits
 ROW_LIMIT = int(os.environ.get("ROW_LIMIT", 50000))
@@ -242,30 +198,39 @@ SQL_MAX_ROW = int(os.environ.get("SQL_MAX_ROW", 100000))
 DEFAULT_SQLLAB_LIMIT = int(os.environ.get("DEFAULT_SQLLAB_LIMIT", 1000))
 SUPERSET_META_DB_LIMIT = int(os.environ.get("SUPERSET_META_DB_LIMIT", 1000))
 
-# INCREASED TIMEOUTS FOR RAILWAY
-WEB_QUERY_TIMEOUT = int(os.environ.get("WEB_QUERY_TIMEOUT", 600))  # Increased from 300
-DATABASE_QUERY_TIMEOUT = int(os.environ.get("DATABASE_QUERY_TIMEOUT", 120))  # Increased from 60
-SUPERSET_WEBSERVER_TIMEOUT = int(os.environ.get("SUPERSET_WEBSERVER_TIMEOUT", 600))  # Increased from 300
-SQLLAB_TIMEOUT = int(os.environ.get("SQLLAB_TIMEOUT", 600))  # Added
+# MAXIMUM TIMEOUTS
+WEB_QUERY_TIMEOUT = int(os.environ.get("WEB_QUERY_TIMEOUT", 900))  # 15 minutes
+DATABASE_QUERY_TIMEOUT = int(os.environ.get("DATABASE_QUERY_TIMEOUT", 300))  # 5 minutes
+SUPERSET_WEBSERVER_TIMEOUT = int(os.environ.get("SUPERSET_WEBSERVER_TIMEOUT", 900))  # 15 minutes
+SQLLAB_TIMEOUT = int(os.environ.get("SQLLAB_TIMEOUT", 900))  # 15 minutes
 SQLLAB_ASYNC_TIME_LIMIT_SEC = int(os.environ.get("SQLLAB_ASYNC_TIME_LIMIT_SEC", 43200))  # 12 hours
 
-# Async queries configuration - IMPROVED FOR DASHBOARDS
-GLOBAL_ASYNC_QUERIES = os.environ.get("GLOBAL_ASYNC_QUERIES", "True").lower() == "true"
-SUPERSET_LOAD_CHART_ASYNC = os.environ.get("SUPERSET_LOAD_CHART_ASYNC", "True").lower() == "true"
+# DISABLE ASYNC QUERIES FOR DASHBOARDS
+GLOBAL_ASYNC_QUERIES = False
+SUPERSET_LOAD_CHART_ASYNC = False
 
-# Global async queries transport - CRITICAL FOR RAILWAY
-GLOBAL_ASYNC_QUERIES_TRANSPORT = os.environ.get("GLOBAL_ASYNC_QUERIES_TRANSPORT", "polling")
-GLOBAL_ASYNC_QUERIES_POLLING_DELAY = int(os.environ.get("GLOBAL_ASYNC_QUERIES_POLLING_DELAY", 500))
+# Dashboard specific settings
+DASHBOARD_AUTO_REFRESH_MODE = "fetch"
+DASHBOARD_AUTO_REFRESH_INTERVALS = [
+    [0, "Don't refresh"],
+    [10, "10 seconds"],
+    [30, "30 seconds"],
+    [60, "1 minute"],
+    [300, "5 minutes"],
+    [1800, "30 minutes"],
+    [3600, "1 hour"],
+]
 
 # Webserver domains
 superset_webserver_domains = os.environ.get("SUPERSET_WEBSERVER_DOMAINS")
 if superset_webserver_domains:
     SUPERSET_WEBSERVER_DOMAINS = superset_webserver_domains.split(",")
 
-# Session configuration - FIXED FOR RAILWAY
-SESSION_COOKIE_SAMESITE = os.environ.get("SESSION_COOKIE_SAMESITE", "Lax")  # Changed from None
-SESSION_COOKIE_SECURE = os.environ.get("SESSION_COOKIE_SECURE", "True").lower() == "true"  # Changed to True
-SESSION_COOKIE_HTTPONLY = os.environ.get("SESSION_COOKIE_HTTPONLY", "True").lower() == "true"  # Changed to True
+# Session configuration
+SESSION_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_SECURE = False  # Set to False for debugging
+SESSION_COOKIE_HTTPONLY = True
+PERMANENT_SESSION_LIFETIME = 86400  # 24 hours
 
 # Preferred URL scheme
 PREFERRED_URL_SCHEME = os.environ.get("PREFERRED_URL_SCHEME", "https")
@@ -277,11 +242,23 @@ PUBLIC_ROLE_LIKE = os.environ.get("PUBLIC_ROLE_LIKE", "Gamma")
 # Guest role configuration
 GUEST_ROLE_NAME = os.environ.get("GUEST_ROLE_NAME", "Gamma")
 
-# Disable some features that might cause issues in containerized environments
+# Disable some features that might cause issues
 ENABLE_CHUNK_ENCODING = False
 
-# INCREASED CHART LOAD LIMIT FOR DASHBOARDS
-CONCURRENT_CHART_LOAD_LIMIT = int(os.environ.get("CONCURRENT_CHART_LOAD_LIMIT", 8))  # Increased from 4
+# SEQUENTIAL CHART LOADING FOR DASHBOARDS
+CONCURRENT_CHART_LOAD_LIMIT = 1  # Load one chart at a time
+
+# Dashboard cache configuration
+DASHBOARD_CACHE_CONFIG = {
+    'CACHE_TYPE': 'SimpleCache',
+    'CACHE_DEFAULT_TIMEOUT': 300,
+}
+
+# Chart cache configuration
+CHART_CACHE_CONFIG = {
+    'CACHE_TYPE': 'SimpleCache',
+    'CACHE_DEFAULT_TIMEOUT': 86400,
+}
 
 # Additional module DS map
 additional_module_ds_map = os.environ.get("ADDITIONAL_MODULE_DS_MAP")
@@ -291,8 +268,8 @@ if additional_module_ds_map:
     except json.JSONDecodeError:
         pass
 
-# Dashboard virtualization - Keep disabled for now
-DASHBOARD_VIRTUALIZATION = os.environ.get("DASHBOARD_VIRTUALIZATION", "False").lower() == "true"
+# Dashboard virtualization - DISABLED
+DASHBOARD_VIRTUALIZATION = False
 
 # Preferred databases
 preferred_databases = os.environ.get("PREFERRED_DATABASES")
@@ -309,7 +286,7 @@ if os.environ.get("SUPERSET_UPDATE_PERMS"):
 if os.environ.get("SUPERSET_LOAD_EXAMPLES"):
     SUPERSET_LOAD_EXAMPLES = int(os.environ.get("SUPERSET_LOAD_EXAMPLES"))
 
-# Set content security policy warning off since we're handling it differently
+# Set content security policy warning off
 CONTENT_SECURITY_POLICY_WARNING = False
 
 # Ensure all API endpoints work properly
@@ -319,11 +296,11 @@ API_ENABLE_CORS = True
 COMPRESS_ENABLED = True
 COMPRESS_REGISTER = True
 
-# Gunicorn worker configuration (if using gunicorn)
+# Gunicorn worker configuration
 GUNICORN_BIND = f"0.0.0.0:{os.environ.get('PORT', 8088)}"
 GUNICORN_WORKERS = int(os.environ.get("GUNICORN_WORKERS", 2))
-GUNICORN_WORKER_CLASS = os.environ.get("GUNICORN_WORKER_CLASS", "gevent")
-GUNICORN_TIMEOUT = int(os.environ.get("GUNICORN_TIMEOUT", 600))
+GUNICORN_WORKER_CLASS = os.environ.get("GUNICORN_WORKER_CLASS", "sync")  # Changed from gevent to sync
+GUNICORN_TIMEOUT = int(os.environ.get("GUNICORN_TIMEOUT", 900))
 GUNICORN_KEEPALIVE = int(os.environ.get("GUNICORN_KEEPALIVE", 2))
 GUNICORN_MAX_REQUESTS = int(os.environ.get("GUNICORN_MAX_REQUESTS", 1000))
 GUNICORN_MAX_REQUESTS_JITTER = int(os.environ.get("GUNICORN_MAX_REQUESTS_JITTER", 50))
@@ -331,15 +308,60 @@ GUNICORN_MAX_REQUESTS_JITTER = int(os.environ.get("GUNICORN_MAX_REQUESTS_JITTER"
 # Prevent URL encoding issues
 SEND_FILE_MAX_AGE_DEFAULT = int(os.environ.get("SEND_FILE_MAX_AGE_DEFAULT", 86400))
 
-# Chart cache configuration
-CHART_CACHE_CONFIG = {
-    'CACHE_TYPE': 'SimpleCache',
-    'CACHE_DEFAULT_TIMEOUT': 86400,
-}
+# Default feature flags
+DEFAULT_FEATURE_FLAGS = FEATURE_FLAGS.copy()
 
-# Dashboard filter configuration
-DASHBOARD_NATIVE_FILTERS_SET = True
-DEFAULT_FEATURE_FLAGS = {
-    "DASHBOARD_NATIVE_FILTERS": True,
-    "DASHBOARD_NATIVE_FILTERS_SET": True,
-}
+# Application configuration
+APP_NAME = "Superset"
+APP_ICON = "/static/assets/images/superset-logo-horiz.png"
+
+# Flask app config
+SEND_FILE_MAX_AGE_DEFAULT = 86400
+MAX_CONTENT_LENGTH = 50 * 1024 * 1024  # 50MB max request size
+
+# Dashboard loading optimization
+DASHBOARD_TEMPLATE_ID_KEY = "_dashboard_template_id"
+STORE_CACHE_KEYS_IN_METADATA_DB = False
+
+# Logging configuration
+LOG_FORMAT = "%(asctime)s:%(levelname)s:%(name)s:%(message)s"
+LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
+
+# Enable debug mode for troubleshooting
+DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
+FLASK_DEBUG = DEBUG
+
+# API rate limiting - disabled for debugging
+RATELIMIT_ENABLED = False
+
+# Results backend - use database if no Redis
+if REDIS_URL:
+    RESULTS_BACKEND = {
+        "class": "cachelib.redis.RedisCache",
+        "cache_redis_url": REDIS_URL,
+        "key_prefix": "superset_results",
+    }
+else:
+    RESULTS_BACKEND = None
+
+# SQL Lab configuration
+SQL_QUERY_MUTATOR = None
+SQLLAB_CTAS_NO_LIMIT = True
+SQLLAB_DEFAULT_DBID = None
+SQLLAB_VALIDATION_TIMEOUT = 10
+SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = 10
+
+# Chart rendering
+SCREENSHOT_LOCATE_WAIT = 100
+SCREENSHOT_LOAD_WAIT = 600
+
+print("=" * 80)
+print("SUPERSET CONFIGURATION LOADED")
+print(f"ASYNC QUERIES: {GLOBAL_ASYNC_QUERIES}")
+print(f"ASYNC CHART LOAD: {SUPERSET_LOAD_CHART_ASYNC}")
+print(f"CONCURRENT CHART LIMIT: {CONCURRENT_CHART_LOAD_LIMIT}")
+print(f"WEB TIMEOUT: {WEB_QUERY_TIMEOUT}")
+print(f"CSRF ENABLED: {WTF_CSRF_ENABLED}")
+print(f"CORS ENABLED: {ENABLE_CORS}")
+print(f"WORKER CLASS: {GUNICORN_WORKER_CLASS}")
+print("=" * 80)
