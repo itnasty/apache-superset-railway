@@ -25,7 +25,13 @@ if [ "${ENABLE_CACHE_WARMING:-true}" = "true" ]; then
     mkdir -p /app/logs
     
     # Run initial cache warming in background after 90 seconds
-    (sleep 90 && python /app/scripts/cache_warmer.py --url http://localhost:${PORT:-8088} --critical-only > /app/logs/cache_warmer.log 2>&1 || true) &
+    # Try enhanced warmer first, fallback to basic if not available
+    (sleep 90 && \
+     if [ -f /app/scripts/cache_warmer_enhanced.py ]; then \
+         python /app/scripts/cache_warmer_enhanced.py --url http://localhost:${PORT:-8088} --dashboard-ids 1,2,3,4,5 > /app/logs/cache_warmer.log 2>&1; \
+     else \
+         python /app/scripts/cache_warmer.py --url http://localhost:${PORT:-8088} --critical-only > /app/logs/cache_warmer.log 2>&1; \
+     fi || true) &
     echo "✅ Cache warming will start in 90 seconds..."
 fi
 

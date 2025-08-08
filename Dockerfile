@@ -25,8 +25,9 @@ RUN chmod +x /app/superset_init.sh
 
 # Copy cache warmer and performance scripts
 COPY scripts/cache_warmer.py /app/scripts/
+COPY scripts/cache_warmer_enhanced.py /app/scripts/
 COPY scripts/superset-cron /app/scripts/
-RUN chmod +x /app/scripts/cache_warmer.py
+RUN chmod +x /app/scripts/cache_warmer.py /app/scripts/cache_warmer_enhanced.py
 
 # Copy test endpoint (optional for monitoring)
 COPY config/test_redis_endpoint.py /app/pythonpath/
