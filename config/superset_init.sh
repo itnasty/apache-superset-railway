@@ -19,4 +19,4 @@ superset init || echo "Init failed, continuing..."
 
 # Start the server
 echo "Starting server on port ${PORT:-8088}..."
-exec superset run -h 0.0.0.0 -p ${PORT:-8088} --with-threads --reload
+exec superset run -h 0.0.0.0 -p ${PORT:-8088} --with-threads
