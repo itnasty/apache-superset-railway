@@ -12,9 +12,9 @@ RUN apt-get update && apt-get install -y \
 # Create data directory
 RUN mkdir -p /app/data && chown -R superset:superset /app/data
 
-# Copy requirements
+# Copy requirements and install database drivers
 COPY requirements.txt /app/
-RUN pip install --no-cache-dir -r /app/requirements.txt || true
+RUN pip install --no-cache-dir -r /app/requirements.txt
 
 # Copy configuration files
 COPY config/superset_config.py /app/
