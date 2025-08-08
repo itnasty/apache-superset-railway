@@ -2,8 +2,9 @@ import os
 from urllib.parse import urlparse
 
 # Flask App Config
-ROW_LIMIT = 25000  # Optimized for high-volume sales data (balanced performance)
+ROW_LIMIT = 15000  # Reduced from 25K to avoid packet sequence errors
 SUPERSET_WEBSERVER_TIMEOUT = 900  # 15 minutes
+SUPERSET_ROW_LIMIT = 15000  # Explicit superset row limit
 SECRET_KEY = os.environ.get("SECRET_KEY", "ThisIsNotSecureChangeIt123")
 
 # Flask-WTF flag for CSRF
@@ -14,10 +15,26 @@ DATABASE_URL = os.environ.get("DATABASE") or os.environ.get("DATABASE_URL", "sql
 SQLALCHEMY_DATABASE_URI = DATABASE_URL
 
 # Database Connection Pool Optimization
-SQLALCHEMY_POOL_SIZE = 20
-SQLALCHEMY_POOL_RECYCLE = 3600
-SQLALCHEMY_MAX_OVERFLOW = 40
+SQLALCHEMY_POOL_SIZE = 10  # Reduced from 20 to avoid connection overload
+SQLALCHEMY_POOL_RECYCLE = 300  # Recycle connections every 5 minutes (was 3600)
+SQLALCHEMY_MAX_OVERFLOW = 20  # Reduced from 40
+SQLALCHEMY_POOL_PRE_PING = True  # Test connections before using them
 SQLALCHEMY_TRACK_MODIFICATIONS = False
+SQLALCHEMY_ENGINE_OPTIONS = {
+    "pool_pre_ping": True,  # Verify connection before use
+    "pool_recycle": 300,  # Recycle every 5 minutes
+    "connect_args": {
+        "connect_timeout": 30,  # Connection timeout
+        "read_timeout": 300,  # Read timeout for large queries
+        "write_timeout": 300,  # Write timeout
+        "max_allowed_packet": 67108864,  # 64MB for large result sets
+        "charset": "utf8mb4",  # UTF-8 support
+        "use_unicode": True,
+        "autocommit": True,  # Avoid transaction issues
+    },
+    "echo": False,  # Set to True for debugging
+    "echo_pool": False,  # Set to True to debug connection pool
+}
 
 # Redis Configuration for Advanced Caching
 REDIS_URL = os.environ.get("REDIS_URL")
@@ -160,9 +177,10 @@ SQLLAB_TIMEOUT = 900  # 15 minutes
 SQLLAB_ASYNC_TIME_LIMIT_SEC = 900
 
 # Query limits
-SQL_MAX_ROW = 100000  # Maximum for SQL Lab (increased for data analysis)
+SQL_MAX_ROW = 50000  # Reduced from 100K to avoid connection issues
 SAMPLES_ROW_LIMIT = 1000  # Sample data limit (keep low for fast previews)
 FILTER_SELECT_ROW_LIMIT = 10000  # Filter dropdown limit
+DISPLAY_MAX_ROW = 15000  # Maximum rows to display in table visualization
 
 # Compression
 COMPRESS_REGISTER = True
