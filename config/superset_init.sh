@@ -12,7 +12,9 @@ sleep 3
 
 echo "📊 Upgrading database first..."
 # Upgrade Superset database before creating users
-superset db upgrade
+superset db upgrade || {
+    echo "⚠️  Database upgrade failed, continuing anyway..."
+}
 
 echo "👤 Creating admin user..."
 # Create Admin user using Railway-provided environment variables
@@ -27,7 +29,9 @@ superset fab create-admin \
 
 echo "🔧 Initializing Superset roles and permissions..."
 # Setup roles and permissions
-superset init
+superset init || {
+    echo "⚠️  Superset init failed, continuing anyway..."
+}
 
 echo "✅ Superset initialization complete!"
 
@@ -39,11 +43,5 @@ fi
 
 echo "🌐 Starting web server on port ${PORT:-8088}..."
 
-# SIMPLE STARTUP - NO GUNICORN FOR NOW
-echo "🚀 Starting with development server (more stable for Railway)..."
-exec superset run \
-    -h 0.0.0.0 \
-    -p ${PORT:-8088} \
-    --with-threads \
-    --reload \
-    --debugger
+# Start with a simple server first
+exec superset run -h 0.0.0.0 -p ${PORT:-8088} --with-threads --reload
