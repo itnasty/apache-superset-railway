@@ -2,7 +2,6 @@
 pymysql==1.1.1
 psycopg2-binary==2.9.9
 mysqlclient==2.2.4
-pip==2.5.2
 
 # Additional dependencies for Railway deployment
 redis==5.0.7
