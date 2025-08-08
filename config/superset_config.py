@@ -96,3 +96,12 @@ PREFERRED_URL_SCHEME = "https"
 DATABASE_QUERY_TIMEOUT = 300
 WEB_QUERY_TIMEOUT = 600
 SQLLAB_TIMEOUT = 600
+
+# Redis test endpoint (temporary for testing)
+import sys
+sys.path.append('/app/pythonpath')
+try:
+    from test_redis_endpoint import init_redis_test_endpoint
+    FLASK_APP_MUTATOR = lambda app: init_redis_test_endpoint(app)
+except ImportError:
+    pass  # Test endpoint not available
