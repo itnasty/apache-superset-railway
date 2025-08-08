@@ -55,30 +55,34 @@ def check_redis_data():
                 print(f"\n   Sample keys (showing up to 20):")
                 for key in keys:
                     try:
-                        # Get key type and TTL
-                        key_type = r.type(key)
+                        # Get TTL
                         ttl = r.ttl(key)
                         
-                        # Get value preview based on type
-                        value_preview = ""
-                        if key_type == "string":
-                            value = r.get(key)
-                            if value:
-                                value_preview = value[:100] + "..." if len(value) > 100 else value
-                        elif key_type == "hash":
-                            value_preview = f"Hash with {r.hlen(key)} fields"
-                        elif key_type == "list":
-                            value_preview = f"List with {r.llen(key)} items"
-                        elif key_type == "set":
-                            value_preview = f"Set with {r.scard(key)} members"
+                        ttl_display = ""
+                        if ttl > 0:
+                            hours = ttl / 3600
+                            days = ttl / 86400
+                            if days >= 1:
+                                ttl_display = f"{days:.1f} days"
+                            elif hours >= 1:
+                                ttl_display = f"{hours:.1f} hours"
+                            else:
+                                minutes = ttl / 60
+                                if minutes >= 1:
+                                    ttl_display = f"{minutes:.0f} minutes"
+                                else:
+                                    ttl_display = f"{ttl} seconds"
+                        elif ttl == -1:
+                            ttl_display = "No expiration"
+                        else:
+                            ttl_display = "Expired"
                         
-                        print(f"      • {key[:60]}...")
-                        print(f"        Type: {key_type}, TTL: {ttl}s")
-                        if value_preview:
-                            print(f"        Preview: {value_preview[:80]}...")
+                        # Truncate long keys for display
+                        key_display = key if len(key) <= 80 else key[:77] + "..."
+                        print(f"      • {key_display} (TTL: {ttl_display})")
                             
                     except Exception as e:
-                        print(f"      • {key} (Error reading: {e})")
+                        print(f"      • {key} (Error: {e})")
                 
                 if db_size > 20:
                     print(f"\n   ... and {db_size - 20} more keys")

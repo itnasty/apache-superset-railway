@@ -49,6 +49,9 @@ if REDIS_URL:
     # Force cache timeouts (override Superset defaults)
     CACHE_DEFAULT_TIMEOUT = 86400  # 24 hours global default
     DATA_CACHE_TIMEOUT = 86400  # Explicit data cache timeout
+    DASHBOARD_CACHE_TIMEOUT = 86400  # Dashboard cache timeout
+    CHART_CACHE_TIMEOUT = 86400  # Chart cache timeout
+    EXPLORE_CACHE_TIMEOUT = 7200  # Explore form timeout
     
     # 3. Filter State Cache (24 hours)
     FILTER_STATE_CACHE_CONFIG = {
@@ -97,7 +100,7 @@ if REDIS_URL:
     # General cache config
     CACHE_CONFIG = {
         "CACHE_TYPE": "RedisCache",
-        "CACHE_DEFAULT_TIMEOUT": 300,  # 5 minutes
+        "CACHE_DEFAULT_TIMEOUT": 86400,  # 24 hours (was 5 minutes)
         "CACHE_KEY_PREFIX": "superset_",
         "CACHE_REDIS_HOST": redis_parsed.hostname,
         "CACHE_REDIS_PORT": redis_parsed.port or 6379,
