@@ -143,7 +143,7 @@ ENABLE_PROXY_FIX = os.environ.get("ENABLE_PROXY_FIX", "True").lower() == "true"
 TALISMAN_ENABLED = os.environ.get("TALISMAN_ENABLED", "False").lower() == "true"
 WTF_CSRF_ENABLED = os.environ.get("WTF_CSRF_ENABLED", "False").lower() == "true"
 
-# CSRF exempt list
+# CSRF settings
 csrf_exempt_list = os.environ.get("WTF_CSRF_EXEMPT_LIST")
 if csrf_exempt_list:
     try:
@@ -151,7 +151,14 @@ if csrf_exempt_list:
     except json.JSONDecodeError:
         WTF_CSRF_EXEMPT_LIST = ["superset.views.api", "superset.views.core.api", "superset.charts.api.ChartRestApi.post"]
 else:
-    WTF_CSRF_EXEMPT_LIST = []
+    WTF_CSRF_EXEMPT_LIST = ["superset.views.api", "superset.views.core.api", "superset.charts.api.ChartRestApi.post"]
+
+# Add more CSRF exemptions for chart data endpoints
+WTF_CSRF_EXEMPT_LIST.extend([
+    "superset.charts.data.api.ChartDataRestApi.data",
+    "superset.charts.data.api.ChartDataRestApi.get_data",
+    "superset.charts.data.api.ChartDataRestApi.data_from_cache"
+])
 
 # CORS settings
 ENABLE_CORS = os.environ.get("ENABLE_CORS", "True").lower() == "true"
@@ -160,7 +167,17 @@ if cors_options:
     try:
         CORS_OPTIONS = json.loads(cors_options)
     except json.JSONDecodeError:
-        pass
+        CORS_OPTIONS = {
+            "supports_credentials": True,
+            "allow_headers": ["*"],
+            "origins": ["*"]
+        }
+else:
+    CORS_OPTIONS = {
+        "supports_credentials": True,
+        "allow_headers": ["*"],
+        "origins": ["*"]
+    }
 
 # HTTP Headers
 http_headers = os.environ.get("HTTP_HEADERS")
@@ -196,6 +213,9 @@ SUPERSET_WEBSERVER_TIMEOUT = int(os.environ.get("SUPERSET_WEBSERVER_TIMEOUT", 30
 GLOBAL_ASYNC_QUERIES = os.environ.get("GLOBAL_ASYNC_QUERIES", "True").lower() == "true"
 SUPERSET_LOAD_CHART_ASYNC = os.environ.get("SUPERSET_LOAD_CHART_ASYNC", "True").lower() == "true"
 
+# Global async queries transport
+GLOBAL_ASYNC_QUERIES_TRANSPORT = os.environ.get("GLOBAL_ASYNC_QUERIES_TRANSPORT", "polling")
+
 # Webserver domains
 superset_webserver_domains = os.environ.get("SUPERSET_WEBSERVER_DOMAINS")
 if superset_webserver_domains:
@@ -212,6 +232,9 @@ PREFERRED_URL_SCHEME = os.environ.get("PREFERRED_URL_SCHEME", "https")
 # Public role configuration
 AUTH_ROLE_PUBLIC = os.environ.get("AUTH_ROLE_PUBLIC", "Gamma")
 PUBLIC_ROLE_LIKE = os.environ.get("PUBLIC_ROLE_LIKE", "Gamma")
+
+# Guest role configuration
+GUEST_ROLE_NAME = os.environ.get("GUEST_ROLE_NAME", "Gamma")
 
 # Disable some features that might cause issues in containerized environments
 ENABLE_CHUNK_ENCODING = False
@@ -244,3 +267,9 @@ if os.environ.get("SUPERSET_UPDATE_PERMS"):
 
 if os.environ.get("SUPERSET_LOAD_EXAMPLES"):
     SUPERSET_LOAD_EXAMPLES = int(os.environ.get("SUPERSET_LOAD_EXAMPLES"))
+
+# Set content security policy warning off since we're handling it differently
+CONTENT_SECURITY_POLICY_WARNING = False
+
+# Ensure all API endpoints work properly
+API_ENABLE_CORS = True
