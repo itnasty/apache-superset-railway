@@ -46,6 +46,10 @@ if REDIS_URL:
         "CACHE_REDIS_DB": 1,
     }
     
+    # Force cache timeouts (override Superset defaults)
+    CACHE_DEFAULT_TIMEOUT = 86400  # 24 hours global default
+    DATA_CACHE_TIMEOUT = 86400  # Explicit data cache timeout
+    
     # 3. Filter State Cache (24 hours)
     FILTER_STATE_CACHE_CONFIG = {
         "CACHE_TYPE": "RedisCache",
@@ -132,8 +136,8 @@ FEATURE_FLAGS = {
     "DASHBOARD_VIRTUALIZATION": True,  # Virtual scrolling
     "DASHBOARD_NATIVE_FILTERS": True,  # Faster filters
     "DASHBOARD_CROSS_FILTERS": True,  # Cross-filtering
-    "THUMBNAILS": True,  # Enable thumbnails
-    "THUMBNAILS_SQLA_LISTENERS": True,
+    # "THUMBNAILS": True,  # Disabled - requires Selenium/Chrome
+    # "THUMBNAILS_SQLA_LISTENERS": True,
     "LISTVIEWS_DEFAULT_CARD_VIEW": True,  # Card view for lists
     "ENABLE_EXPLORE_DRAG_AND_DROP": True,
     "DISABLE_LEGACY_DATASOURCE_EDITOR": True,
