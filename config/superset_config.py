@@ -2,7 +2,7 @@ import os
 from urllib.parse import urlparse
 
 # Flask App Config
-ROW_LIMIT = 10000  # Reduced for faster queries
+ROW_LIMIT = 25000  # Optimized for high-volume sales data (balanced performance)
 SUPERSET_WEBSERVER_TIMEOUT = 900  # 15 minutes
 SECRET_KEY = os.environ.get("SECRET_KEY", "ThisIsNotSecureChangeIt123")
 
@@ -153,8 +153,8 @@ SQLLAB_TIMEOUT = 900  # 15 minutes
 SQLLAB_ASYNC_TIME_LIMIT_SEC = 900
 
 # Query limits
-SQL_MAX_ROW = 50000  # Maximum for SQL Lab
-SAMPLES_ROW_LIMIT = 1000  # Sample data limit
+SQL_MAX_ROW = 100000  # Maximum for SQL Lab (increased for data analysis)
+SAMPLES_ROW_LIMIT = 1000  # Sample data limit (keep low for fast previews)
 FILTER_SELECT_ROW_LIMIT = 10000  # Filter dropdown limit
 
 # Compression
