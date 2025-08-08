@@ -21,9 +21,9 @@ superset init || echo "Init failed, continuing..."
 if command -v cron &> /dev/null; then
     echo "Setting up cache warming cron jobs..."
     
-    # Create log directory
-    mkdir -p /var/log
-    touch /var/log/cache_warmer.log
+    # Create log directory in app directory (writable)
+    mkdir -p /app/logs
+    touch /app/logs/cache_warmer.log || true
     
     # Add cron jobs (optional - can be disabled with env var)
     if [ "${ENABLE_CACHE_WARMING:-true}" = "true" ]; then

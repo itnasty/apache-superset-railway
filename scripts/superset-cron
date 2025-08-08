@@ -2,13 +2,13 @@
 # This file contains scheduled tasks for cache warming
 
 # Warm all dashboards every morning at 6 AM
-0 6 * * * superset python /app/scripts/cache_warmer.py --url http://localhost:8088 >> /var/log/cache_warmer.log 2>&1
+0 6 * * * superset python /app/scripts/cache_warmer.py --url http://localhost:8088 >> /app/logs/cache_warmer.log 2>&1
 
 # Warm critical dashboards every 30 minutes during business hours (8 AM - 8 PM)
-*/30 8-20 * * * superset python /app/scripts/cache_warmer.py --critical-only --url http://localhost:8088 >> /var/log/cache_warmer.log 2>&1
+*/30 8-20 * * * superset python /app/scripts/cache_warmer.py --critical-only --url http://localhost:8088 >> /app/logs/cache_warmer.log 2>&1
 
 # Warm recent queries every 2 hours
-0 */2 * * * superset python /app/scripts/cache_warmer.py --recent-queries --url http://localhost:8088 >> /var/log/cache_warmer.log 2>&1
+0 */2 * * * superset python /app/scripts/cache_warmer.py --recent-queries --url http://localhost:8088 >> /app/logs/cache_warmer.log 2>&1
 
 # Clean up old cache entries daily at midnight (optional)
 # 0 0 * * * superset redis-cli --scan --pattern "superset_*" | head -1000 | xargs redis-cli DEL >> /var/log/cache_cleanup.log 2>&1

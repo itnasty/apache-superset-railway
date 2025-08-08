@@ -164,9 +164,9 @@ COMPRESS_MIN_SIZE = 500
 # Static file caching
 SEND_FILE_MAX_AGE_DEFAULT = 604800  # 7 days
 
-# Performance logging (optional)
-STATS_LOGGER = False  # Set to True to enable
-EVENT_LOGGER = False  # Set to True to enable
+# Performance logging (disabled to avoid configuration issues)
+# STATS_LOGGER = False  # Uncomment to enable
+# EVENT_LOGGER = False  # Uncomment to enable
 
 # Thumbnail generation user
 THUMBNAIL_SELENIUM_USER = os.environ.get("ADMIN_USERNAME", "admin")
