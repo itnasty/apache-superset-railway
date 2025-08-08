@@ -29,7 +29,11 @@ else:
     # For other databases, use environment variables if provided
     engine_options = os.environ.get("SQLALCHEMY_ENGINE_OPTIONS")
     if engine_options:
-        SQLALCHEMY_ENGINE_OPTIONS = json.loads(engine_options)
+        try:
+            SQLALCHEMY_ENGINE_OPTIONS = json.loads(engine_options)
+        except json.JSONDecodeError:
+            # If JSON parsing fails, use default
+            pass
 
 # Redis configuration for caching
 REDIS_URL = os.environ.get("REDIS_URL")
@@ -38,7 +42,15 @@ if REDIS_URL:
     # Main cache configuration
     cache_config = os.environ.get("CACHE_CONFIG")
     if cache_config:
-        CACHE_CONFIG = json.loads(cache_config)
+        try:
+            CACHE_CONFIG = json.loads(cache_config)
+        except json.JSONDecodeError:
+            CACHE_CONFIG = {
+                'CACHE_TYPE': 'RedisCache',
+                'CACHE_REDIS_URL': REDIS_URL,
+                'CACHE_DEFAULT_TIMEOUT': 300,
+                'CACHE_KEY_PREFIX': 'superset_'
+            }
     else:
         CACHE_CONFIG = {
             'CACHE_TYPE': 'RedisCache',
@@ -50,32 +62,50 @@ if REDIS_URL:
     # Data cache configuration
     data_cache_config = os.environ.get("DATA_CACHE_CONFIG")
     if data_cache_config:
-        DATA_CACHE_CONFIG = json.loads(data_cache_config)
+        try:
+            DATA_CACHE_CONFIG = json.loads(data_cache_config)
+        except json.JSONDecodeError:
+            pass
     
     # Filter state cache configuration
     filter_state_cache_config = os.environ.get("FILTER_STATE_CACHE_CONFIG")
     if filter_state_cache_config:
-        FILTER_STATE_CACHE_CONFIG = json.loads(filter_state_cache_config)
+        try:
+            FILTER_STATE_CACHE_CONFIG = json.loads(filter_state_cache_config)
+        except json.JSONDecodeError:
+            pass
     
     # Explore form data cache configuration
     explore_form_data_cache_config = os.environ.get("EXPLORE_FORM_DATA_CACHE_CONFIG")
     if explore_form_data_cache_config:
-        EXPLORE_FORM_DATA_CACHE_CONFIG = json.loads(explore_form_data_cache_config)
+        try:
+            EXPLORE_FORM_DATA_CACHE_CONFIG = json.loads(explore_form_data_cache_config)
+        except json.JSONDecodeError:
+            pass
     
     # Results backend configuration
     results_backend = os.environ.get("RESULTS_BACKEND")
     if results_backend:
-        RESULTS_BACKEND = json.loads(results_backend)
+        try:
+            RESULTS_BACKEND = json.loads(results_backend)
+        except json.JSONDecodeError:
+            pass
     
     # Thumbnail cache configuration
     thumbnail_cache_config = os.environ.get("THUMBNAIL_CACHE_CONFIG")
     if thumbnail_cache_config:
-        THUMBNAIL_CACHE_CONFIG = json.loads(thumbnail_cache_config)
+        try:
+            THUMBNAIL_CACHE_CONFIG = json.loads(thumbnail_cache_config)
+        except json.JSONDecodeError:
+            pass
     
     # Celery configuration
     celery_config = os.environ.get("CELERY_CONFIG")
     if celery_config:
-        CELERY_CONFIG = json.loads(celery_config)
+        try:
+            CELERY_CONFIG = json.loads(celery_config)
+        except json.JSONDecodeError:
+            pass
     
     # Rate limit storage
     ratelimit_storage_uri = os.environ.get("RATELIMIT_STORAGE_URI")
@@ -85,10 +115,23 @@ if REDIS_URL:
 # Mapbox configuration
 MAPBOX_API_KEY = os.environ.get("MAPBOX_API_KEY", "")
 
-# Feature flags
+# Feature flags - handle both Python True/False and JSON true/false
 feature_flags = os.environ.get("SUPERSET_FEATURE_FLAGS")
 if feature_flags:
-    FEATURE_FLAGS = json.loads(feature_flags)
+    try:
+        # First try to parse as JSON
+        FEATURE_FLAGS = json.loads(feature_flags)
+    except json.JSONDecodeError:
+        # If that fails, try replacing Python booleans with JSON booleans
+        try:
+            feature_flags_fixed = feature_flags.replace("True", "true").replace("False", "false")
+            FEATURE_FLAGS = json.loads(feature_flags_fixed)
+        except json.JSONDecodeError:
+            # If still fails, use default
+            FEATURE_FLAGS = {
+                "ENABLE_TEMPLATE_PROCESSING": True,
+                "ENABLE_JAVASCRIPT_CONTROLS": True
+            }
 else:
     FEATURE_FLAGS = {
         "ENABLE_TEMPLATE_PROCESSING": True,
@@ -99,23 +142,41 @@ else:
 ENABLE_PROXY_FIX = os.environ.get("ENABLE_PROXY_FIX", "True").lower() == "true"
 TALISMAN_ENABLED = os.environ.get("TALISMAN_ENABLED", "False").lower() == "true"
 WTF_CSRF_ENABLED = os.environ.get("WTF_CSRF_ENABLED", "False").lower() == "true"
-WTF_CSRF_EXEMPT_LIST = json.loads(os.environ.get("WTF_CSRF_EXEMPT_LIST", '["superset.views.api", "superset.views.core.api", "superset.charts.api.ChartRestApi.post"]'))
+
+# CSRF exempt list
+csrf_exempt_list = os.environ.get("WTF_CSRF_EXEMPT_LIST")
+if csrf_exempt_list:
+    try:
+        WTF_CSRF_EXEMPT_LIST = json.loads(csrf_exempt_list)
+    except json.JSONDecodeError:
+        WTF_CSRF_EXEMPT_LIST = ["superset.views.api", "superset.views.core.api", "superset.charts.api.ChartRestApi.post"]
+else:
+    WTF_CSRF_EXEMPT_LIST = []
 
 # CORS settings
 ENABLE_CORS = os.environ.get("ENABLE_CORS", "True").lower() == "true"
 cors_options = os.environ.get("CORS_OPTIONS")
 if cors_options:
-    CORS_OPTIONS = json.loads(cors_options)
+    try:
+        CORS_OPTIONS = json.loads(cors_options)
+    except json.JSONDecodeError:
+        pass
 
 # HTTP Headers
 http_headers = os.environ.get("HTTP_HEADERS")
 if http_headers:
-    HTTP_HEADERS = json.loads(http_headers)
+    try:
+        HTTP_HEADERS = json.loads(http_headers)
+    except json.JSONDecodeError:
+        pass
 
 # Proxy configuration
 proxy_fix_config = os.environ.get("PROXY_FIX_CONFIG")
 if proxy_fix_config:
-    PROXY_FIX_CONFIG = json.loads(proxy_fix_config)
+    try:
+        PROXY_FIX_CONFIG = json.loads(proxy_fix_config)
+    except json.JSONDecodeError:
+        pass
 
 # Query and row limits
 ROW_LIMIT = int(os.environ.get("ROW_LIMIT", 50000))
@@ -161,7 +222,10 @@ CONCURRENT_CHART_LOAD_LIMIT = int(os.environ.get("CONCURRENT_CHART_LOAD_LIMIT", 
 # Additional module DS map
 additional_module_ds_map = os.environ.get("ADDITIONAL_MODULE_DS_MAP")
 if additional_module_ds_map:
-    ADDITIONAL_MODULE_DS_MAP = json.loads(additional_module_ds_map)
+    try:
+        ADDITIONAL_MODULE_DS_MAP = json.loads(additional_module_ds_map)
+    except json.JSONDecodeError:
+        pass
 
 # Dashboard virtualization
 DASHBOARD_VIRTUALIZATION = os.environ.get("DASHBOARD_VIRTUALIZATION", "False").lower() == "true"
@@ -169,7 +233,10 @@ DASHBOARD_VIRTUALIZATION = os.environ.get("DASHBOARD_VIRTUALIZATION", "False").l
 # Preferred databases
 preferred_databases = os.environ.get("PREFERRED_DATABASES")
 if preferred_databases:
-    PREFERRED_DATABASES = json.loads(preferred_databases)
+    try:
+        PREFERRED_DATABASES = json.loads(preferred_databases)
+    except json.JSONDecodeError:
+        pass
 
 # Other settings from environment
 if os.environ.get("SUPERSET_UPDATE_PERMS"):
