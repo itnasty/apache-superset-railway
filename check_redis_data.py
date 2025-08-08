@@ -5,14 +5,19 @@ import redis
 from urllib.parse import urlparse
 import json
 
-# Using the public Redis URL from Railway
-REDIS_PUBLIC_URL = "redis://default:TLqyorpIyyGclMFAOjmAjblyXwyOqLZl@nozomi.proxy.rlwy.net:55949"
+# Get Redis URL from environment variable
+import os
+REDIS_PUBLIC_URL = os.environ.get("REDIS_PUBLIC_URL", "")
 
 def check_redis_data():
     """Check all Redis databases for existing data"""
     
+    if not REDIS_PUBLIC_URL:
+        print("❌ REDIS_PUBLIC_URL environment variable not set")
+        print("   Set it with: export REDIS_PUBLIC_URL='your-redis-url'")
+        return
+    
     print("🔍 Connecting to Redis via public URL...")
-    print(f"   Host: nozomi.proxy.rlwy.net:55949")
     
     parsed = urlparse(REDIS_PUBLIC_URL)
     

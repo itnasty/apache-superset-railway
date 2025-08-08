@@ -1,0 +1,16 @@
+*.pyc
+__pycache__/
+.DS_Store
+*.log
+.env
+.env.local
+venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# Security - never commit credentials
+check_redis_data_local.py
+clear_data_cache_local.py
+*_with_credentials.py
