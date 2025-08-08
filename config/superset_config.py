@@ -23,15 +23,6 @@ SQLALCHEMY_TRACK_MODIFICATIONS = False
 SQLALCHEMY_ENGINE_OPTIONS = {
     "pool_pre_ping": True,  # Verify connection before use
     "pool_recycle": 300,  # Recycle every 5 minutes
-    "connect_args": {
-        "connect_timeout": 30,  # Connection timeout
-        "read_timeout": 300,  # Read timeout for large queries
-        "write_timeout": 300,  # Write timeout
-        "max_allowed_packet": 67108864,  # 64MB for large result sets
-        "charset": "utf8mb4",  # UTF-8 support
-        "use_unicode": True,
-        "autocommit": True,  # Avoid transaction issues
-    },
     "echo": False,  # Set to True for debugging
     "echo_pool": False,  # Set to True to debug connection pool
 }
