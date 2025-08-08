@@ -17,28 +17,16 @@ superset fab create-admin \
 # Initialize Superset
 superset init || echo "Init failed, continuing..."
 
-# Setup cron jobs for cache warming (if cron is available)
-if command -v cron &> /dev/null; then
-    echo "Setting up cache warming cron jobs..."
+# Cache warming (simplified - no cron due to permissions)
+if [ "${ENABLE_CACHE_WARMING:-true}" = "true" ]; then
+    echo "🔄 Scheduling initial cache warming..."
     
     # Create log directory in app directory (writable)
     mkdir -p /app/logs
-    touch /app/logs/cache_warmer.log || true
     
-    # Add cron jobs (optional - can be disabled with env var)
-    if [ "${ENABLE_CACHE_WARMING:-true}" = "true" ]; then
-        # Copy cron configuration if it exists
-        if [ -f /app/scripts/superset-cron ]; then
-            cp /app/scripts/superset-cron /etc/cron.d/superset
-            chmod 0644 /etc/cron.d/superset
-            cron
-            echo "✅ Cache warming cron jobs installed"
-        fi
-        
-        # Run initial cache warming in background after 60 seconds
-        (sleep 60 && python /app/scripts/cache_warmer.py --url http://localhost:${PORT:-8088} --critical-only 2>/dev/null || true) &
-        echo "🔄 Initial cache warming scheduled..."
-    fi
+    # Run initial cache warming in background after 90 seconds
+    (sleep 90 && python /app/scripts/cache_warmer.py --url http://localhost:${PORT:-8088} --critical-only > /app/logs/cache_warmer.log 2>&1 || true) &
+    echo "✅ Cache warming will start in 90 seconds..."
 fi
 
 # Log Redis connection status
