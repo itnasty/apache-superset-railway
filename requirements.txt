@@ -4,7 +4,7 @@ psycopg2-binary==2.9.9
 mysqlclient==2.2.4
 
 # Additional dependencies for Railway deployment
-redis==5.0.7
+redis==4.6.0
 
 # CORS support
 flask-cors==4.0.0
