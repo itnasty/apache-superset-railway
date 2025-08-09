@@ -61,6 +61,15 @@ if REDIS_URL:
     CHART_CACHE_TIMEOUT = 86400  # Chart cache timeout
     EXPLORE_CACHE_TIMEOUT = 7200  # Explore form timeout
     
+    # Override chart data API cache timeout (Superset hardcoded default is 600)
+    DEFAULT_CACHE_CONFIG = DATA_CACHE_CONFIG  # Use same config as data cache
+    CHART_DATA_CACHE_TIMEOUT = 86400  # 24 hours for chart data API
+    
+    # Try to override the 600-second default
+    import os
+    os.environ['DATA_CACHE_TIMEOUT'] = '86400'
+    os.environ['CHART_DATA_CACHE_TIMEOUT'] = '86400'
+    
     # 3. Filter State Cache (24 hours)
     FILTER_STATE_CACHE_CONFIG = {
         "CACHE_TYPE": "RedisCache",
@@ -119,6 +128,11 @@ if REDIS_URL:
 # Railway-Specific: Careful with async operations
 GLOBAL_ASYNC_QUERIES = False
 SUPERSET_LOAD_CHART_ASYNC = False
+
+# Force chart data cache timeout (override Superset's 600-second default)
+CHART_CACHE_DEFAULT_TIMEOUT = 86400  # 24 hours
+DEFAULT_CACHE_TIMEOUT = 86400  # 24 hours for all caches
+SUPERSET_DEFAULT_CACHE_TIMEOUT_SECONDS = 86400  # Another possible key
 
 # Slightly increase concurrent loading (test carefully on Railway)
 CONCURRENT_CHART_LOAD_LIMIT = 2  # Increased from 1 to 2
