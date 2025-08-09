@@ -1,6 +1,13 @@
 import os
 from urllib.parse import urlparse
 
+# Apply cache timeout patch to fix the 600-second hardcoded issue
+try:
+    from cache_timeout_patch import *
+    print("✅ Cache timeout patch loaded")
+except Exception as e:
+    print(f"⚠️ Could not load cache timeout patch: {e}")
+
 # Flask App Config
 ROW_LIMIT = 15000  # Reduced from 25K to avoid packet sequence errors
 SUPERSET_WEBSERVER_TIMEOUT = 900  # 15 minutes

@@ -20,6 +20,7 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 
 # Copy configuration files
 COPY config/superset_config.py /app/
+COPY config/cache_timeout_patch.py /app/
 COPY config/superset_init.sh /app/
 RUN chmod +x /app/superset_init.sh
 
@@ -37,6 +38,7 @@ RUN chown -R superset:superset /app
 
 # Environment variables
 ENV SUPERSET_CONFIG_PATH=/app/superset_config.py
+ENV PYTHONPATH=/app:$PYTHONPATH
 
 USER superset
 

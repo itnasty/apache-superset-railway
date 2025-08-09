@@ -1,0 +1,47 @@
+# Build from your forked Superset source with fixed cache timeout
+FROM python:3.9-slim
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    pkg-config \
+    default-libmysqlclient-dev \
+    libpq-dev \
+    curl \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Clone your forked Superset (replace with your actual fork URL)
+# You'll need to update this with your GitHub username/repo
+RUN git clone https://github.com/YOUR_GITHUB/superset.git /app/superset
+
+# Change to superset directory
+WORKDIR /app/superset
+
+# Install Python dependencies
+RUN pip install --upgrade pip setuptools wheel
+RUN pip install -e .
+RUN pip install mysqlclient psycopg2-binary redis
+
+# Copy your custom configuration
+COPY config/superset_config.py /app/superset_config.py
+
+# Copy initialization script
+COPY config/superset_init.sh /app/superset_init.sh
+RUN chmod +x /app/superset_init.sh
+
+# Create superset user
+RUN useradd -m superset && \
+    mkdir -p /app/data && \
+    chown -R superset:superset /app
+
+# Environment variables
+ENV SUPERSET_CONFIG_PATH=/app/superset_config.py
+ENV FLASK_APP=superset
+
+USER superset
+
+CMD ["/bin/bash", "/app/superset_init.sh"]

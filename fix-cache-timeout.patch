@@ -1,0 +1,33 @@
+diff --git a/superset/common/query_context_processor.py b/superset/common/query_context_processor.py
+index abc123..def456 100644
+--- a/superset/common/query_context_processor.py
++++ b/superset/common/query_context_processor.py
+@@ -500,6 +500,12 @@ class QueryContextProcessor:
+     def cache_timeout(self) -> int:
+         if cache_timeout_rv := self._query_context.get_cache_timeout():
+             return cache_timeout_rv
++        
++        # Check for CHART_DATA_CACHE_TIMEOUT first
++        if chart_data_timeout := current_app.config.get("CHART_DATA_CACHE_TIMEOUT"):
++            return chart_data_timeout
++        if data_cache_timeout := current_app.config.get("DATA_CACHE_TIMEOUT"):
++            return data_cache_timeout
++            
+         if (
+             data_cache_timeout := current_app.config["DATA_CACHE_CONFIG"].get(
+                 "CACHE_DEFAULT_TIMEOUT"
+
+diff --git a/superset/config.py b/superset/config.py
+index abc123..def456 100644
+--- a/superset/config.py
++++ b/superset/config.py
+@@ -600,6 +600,10 @@ CACHE_DEFAULT_TIMEOUT = int(timedelta(days=1).total_seconds())
+ # Default cache for Superset objects
+ CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "NullCache"}
+ 
++# Chart data API cache timeout (can be overridden in superset_config.py)
++CHART_DATA_CACHE_TIMEOUT = None  # Will use DATA_CACHE_CONFIG timeout if not set
++DATA_CACHE_TIMEOUT = None  # Will use DATA_CACHE_CONFIG timeout if not set
++
+ # Cache for datasource metadata and query results
+ DATA_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "NullCache"}
