@@ -21,8 +21,9 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 # Copy configuration files
 COPY config/superset_config.py /app/
 COPY config/cache_timeout_patch.py /app/
+COPY config/apply_patch.py /app/
 COPY config/superset_init.sh /app/
-RUN chmod +x /app/superset_init.sh
+RUN chmod +x /app/superset_init.sh /app/apply_patch.py
 
 # Copy cache warmer and performance scripts
 COPY scripts/cache_warmer.py /app/scripts/

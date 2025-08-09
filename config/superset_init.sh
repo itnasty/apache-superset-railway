@@ -17,6 +17,10 @@ superset fab create-admin \
 # Initialize Superset
 superset init || echo "Init failed, continuing..."
 
+# Apply cache timeout patch
+echo "🔧 Applying cache timeout patch..."
+python /app/apply_patch.py || echo "⚠️ Patch application failed, continuing..."
+
 # Cache warming (simplified - no cron due to permissions)
 if [ "${ENABLE_CACHE_WARMING:-true}" = "true" ]; then
     echo "🔄 Scheduling initial cache warming..."
