@@ -23,6 +23,7 @@ COPY config/superset_config.py /app/
 COPY config/cache_timeout_patch.py /app/
 COPY config/apply_patch.py /app/
 COPY config/superset_init.sh /app/
+COPY gunicorn_config.py /app/
 RUN chmod +x /app/superset_init.sh /app/apply_patch.py
 
 # Copy cache warmer and performance scripts

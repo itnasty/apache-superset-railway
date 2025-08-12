@@ -52,7 +52,10 @@ else
     echo "⚠️  Redis not configured - running without caching"
 fi
 
-# Start the server
-echo "Starting optimized Superset server on port ${PORT:-8088}..."
-echo "🚀 Performance features enabled: virtualization, native filters, compression"
-exec superset run -h 0.0.0.0 -p ${PORT:-8088} --with-threads
+# Start the server with Gunicorn (production mode)
+echo "Starting Superset server with Gunicorn on port ${PORT:-8088}..."
+echo "🚀 Production mode enabled with Gunicorn + Gevent workers"
+echo "Workers: ${WEB_CONCURRENCY:-2}, Threads: ${GUNICORN_THREADS:-8}, Timeout: ${GUNICORN_TIMEOUT:-120}s"
+
+# Use Gunicorn for production deployment
+exec gunicorn "superset.app:create_app()" --config /app/gunicorn_config.py

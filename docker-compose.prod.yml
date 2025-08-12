@@ -1,0 +1,48 @@
+version: '3.7'
+
+services:
+  superset:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8088:8088"
+    environment:
+      - PORT=8088
+      - ADMIN_USERNAME=admin
+      - ADMIN_EMAIL=admin@example.com
+      - ADMIN_PASSWORD=admin
+      - SECRET_KEY=your-secret-key-here
+      - DATABASE_URL=postgresql://superset:superset@postgres:5432/superset
+      - REDIS_URL=redis://redis:6379/0
+      # Gunicorn settings
+      - WEB_CONCURRENCY=2
+      - GUNICORN_WORKER_CLASS=gevent
+      - GUNICORN_THREADS=4
+      - GUNICORN_TIMEOUT=120
+      - FLASK_ENV=production
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - superset_data:/app/data
+
+  postgres:
+    image: postgres:14
+    environment:
+      - POSTGRES_USER=superset
+      - POSTGRES_PASSWORD=superset
+      - POSTGRES_DB=superset
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+
+volumes:
+  superset_data:
+  postgres_data:
+  redis_data:

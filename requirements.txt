@@ -8,3 +8,8 @@ redis==4.6.0
 
 # CORS support
 flask-cors==4.0.0
+
+# Production server dependencies
+flask==3.*
+gunicorn==22.*
+gevent==24.*  # For async/streaming support
