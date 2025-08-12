@@ -10,6 +10,6 @@ redis==4.6.0
 flask-cors==4.0.0
 
 # Production server dependencies
-flask==3.*
+# Flask is already included in apache/superset image, don't override
 gunicorn==22.*
 gevent==24.*  # For async/streaming support
