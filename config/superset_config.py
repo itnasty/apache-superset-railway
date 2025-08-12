@@ -37,13 +37,13 @@ if REDIS_URL:
     
     # 1. Results Backend - Query Results Cache (1 hour)
     RESULTS_BACKEND = {
-        "cache_type": "RedisCache",
-        "cache_redis_host": redis_parsed.hostname,
-        "cache_redis_port": redis_parsed.port or 6379,
-        "cache_redis_password": redis_parsed.password,
-        "cache_redis_db": 0,
-        "cache_key_prefix": "superset_results_",
-        "cache_default_timeout": 3600,  # 1 hour for query results
+        "CACHE_TYPE": "RedisCache",
+        "CACHE_REDIS_HOST": redis_parsed.hostname,
+        "CACHE_REDIS_PORT": redis_parsed.port or 6379,
+        "CACHE_REDIS_PASSWORD": redis_parsed.password,
+        "CACHE_REDIS_DB": 0,
+        "CACHE_KEY_PREFIX": "superset_results_",
+        "CACHE_DEFAULT_TIMEOUT": 3600,  # 1 hour for query results
     }
     
     # 2. Data Cache - Dashboard/Chart Data (24 hours)
