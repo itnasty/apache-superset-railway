@@ -36,15 +36,16 @@ if REDIS_URL:
     redis_parsed = urlparse(REDIS_URL)
     
     # 1. Results Backend - Query Results Cache (1 hour)
-    RESULTS_BACKEND = {
-        "CACHE_TYPE": "RedisCache",
-        "CACHE_REDIS_HOST": redis_parsed.hostname,
-        "CACHE_REDIS_PORT": redis_parsed.port or 6379,
-        "CACHE_REDIS_PASSWORD": redis_parsed.password,
-        "CACHE_REDIS_DB": 0,
-        "CACHE_KEY_PREFIX": "superset_results_",
-        "CACHE_DEFAULT_TIMEOUT": 3600,  # 1 hour for query results
-    }
+    # RESULTS_BACKEND requires a cachelib object, not a dictionary configuration
+    from flask_caching.backends.rediscache import RedisCache
+    RESULTS_BACKEND = RedisCache(
+        host=redis_parsed.hostname,
+        port=redis_parsed.port or 6379,
+        password=redis_parsed.password,
+        db=0,
+        key_prefix='superset_results_',
+        default_timeout=3600  # 1 hour for query results
+    )
     
     # 2. Data Cache - Dashboard/Chart Data (24 hours)
     DATA_CACHE_CONFIG = {
