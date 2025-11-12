@@ -16,10 +16,16 @@ RUN mkdir -p /app/data && chown -R superset:superset /app/data
 
 # Copy requirements
 COPY requirements.txt /app/
+RUN chown superset:superset /app/requirements.txt
 
-# Install packages directly into the venv using system pip
-# This forces packages into /app/.venv/lib/python3.10/site-packages/
-RUN python3 -m pip install --no-cache-dir --target=/app/.venv/lib/python3.10/site-packages -r /app/requirements.txt
+# Switch to superset user - their pip will install to their venv automatically
+USER superset
+
+# Install packages - superset user's pip defaults to venv
+RUN pip install --no-cache-dir -r /app/requirements.txt
+
+# Switch back to root
+USER root
 
 # Copy configuration files
 COPY config/superset_config.py /app/
