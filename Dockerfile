@@ -14,9 +14,17 @@ RUN apt-get update && apt-get install -y \
 # Create data directory
 RUN mkdir -p /app/data && chown -R superset:superset /app/data
 
-# Copy requirements and install database drivers
+# Copy requirements
 COPY requirements.txt /app/
-RUN /app/.venv/bin/pip install --no-cache-dir -r /app/requirements.txt
+
+# Switch to superset user BEFORE installing packages
+USER superset
+
+# Install packages as superset user
+RUN python -m pip install --no-cache-dir -r /app/requirements.txt
+
+# Switch back to root for remaining setup
+USER root
 
 # Copy configuration files
 COPY config/superset_config.py /app/
