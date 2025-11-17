@@ -11,5 +11,6 @@ flask-cors==4.0.0
 
 # Production server dependencies
 # Flask is already included in apache/superset image, don't override
-gunicorn==22.*
-gevent==24.*  # For async/streaming support
+# IMPORTANT: Superset 4.0.2 requires gunicorn <22.0
+gunicorn==21.2.0
+gevent==24.11.1  # For async/streaming support
