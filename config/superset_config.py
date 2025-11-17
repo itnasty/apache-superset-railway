@@ -1,5 +1,6 @@
 import os
 from urllib.parse import urlparse
+from datetime import timedelta
 
 # We'll apply the cache timeout patch after Flask app initialization
 # The patch will be loaded by superset_init.sh or when the app starts
@@ -184,6 +185,11 @@ DATABASE_QUERY_TIMEOUT = 300  # 5 minutes
 WEB_QUERY_TIMEOUT = 900  # 15 minutes
 SQLLAB_TIMEOUT = 900  # 15 minutes
 SQLLAB_ASYNC_TIME_LIMIT_SEC = 900
+
+# Database Connection Testing Timeout (fixes 422 errors for high-latency connections)
+# This MUST be a timedelta object, not an integer!
+# Used by func_timeout wrapper in test_connection.py
+TEST_DATABASE_CONNECTION_TIMEOUT = timedelta(seconds=120)  # 2 minutes (increased from default 30s)
 
 # Query limits
 SQL_MAX_ROW = 50000  # Reduced from 100K to avoid connection issues
