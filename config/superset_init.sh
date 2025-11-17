@@ -24,25 +24,33 @@ export PYTHONPATH="/app/pythonpath:${PYTHONPATH}"
 export SUPERSET_CONFIG_PATH="/app/superset_config.py"
 export FLASK_APP="superset.app:create_app()"
 
+# Railway uses DATABASE, not DATABASE_URL
+export DATABASE_URL="${DATABASE:-$DATABASE_URL}"
+
 echo "📝 Configuration:"
 echo "   SUPERSET_CONFIG_PATH: $SUPERSET_CONFIG_PATH"
-echo "   DATABASE_URL: ${DATABASE_URL:0:20}..."
-echo "   REDIS_URL: ${REDIS_URL:0:20}..."
+echo "   DATABASE_URL: ${DATABASE_URL:0:30}..."
+echo "   REDIS_URL: ${REDIS_URL:0:30}..."
 
 # Test database connection
-echo "🔗 Testing database connection..."
-python -c "
+if [ ! -z "$DATABASE_URL" ]; then
+    echo "🔗 Testing database connection..."
+    python -c "
 import os
 from sqlalchemy import create_engine
 try:
     engine = create_engine(os.environ['DATABASE_URL'])
     with engine.connect() as conn:
-        conn.execute('SELECT 1')
-    print('✓ Database connection successful!')
+        result = conn.execute('SELECT 1')
+        print('✓ Database connection successful!')
 except Exception as e:
     print(f'❌ Database connection failed: {e}')
     exit(1)
 "
+else
+    echo "⚠️  DATABASE_URL not set!"
+    exit 1
+fi
 
 # Test Redis connection (if configured)
 if [ ! -z "$REDIS_URL" ]; then
