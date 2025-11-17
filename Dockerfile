@@ -11,19 +11,15 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Create requirements file
+# Copy requirements file
 COPY requirements.txt /app/requirements.txt
 
-# CRITICAL FIX: Install packages in the virtual environment
-# The Superset image uses a virtual environment at /app/.venv
-# We need to activate it and install packages there
-RUN . /app/.venv/bin/activate && \
-    pip install --no-cache-dir --upgrade pip && \
+# Install Python packages directly (no venv needed in this image)
+RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r /app/requirements.txt
 
 # Verify installations
-RUN . /app/.venv/bin/activate && \
-    python -c "import psycopg2; print('✓ psycopg2 installed')" && \
+RUN python -c "import psycopg2; print('✓ psycopg2 installed')" && \
     python -c "import gevent; print('✓ gevent installed')" && \
     python -c "import pymysql; print('✓ pymysql installed')" && \
     python -c "import redis; print('✓ redis installed')"
@@ -55,6 +51,10 @@ USER superset
 
 # Set working directory
 WORKDIR /app
+
+# Set Python path
+ENV PYTHONPATH="/app/pythonpath:${PYTHONPATH}"
+ENV SUPERSET_CONFIG_PATH="/app/superset_config.py"
 
 # Expose port
 EXPOSE 8088

@@ -5,10 +5,6 @@ echo "========================================"
 echo "🚀 Starting Apache Superset on Railway"
 echo "========================================"
 
-# CRITICAL: Activate the virtual environment
-echo "📦 Activating virtual environment..."
-source /app/.venv/bin/activate
-
 # Verify critical modules are available
 echo "🔍 Verifying Python modules..."
 python -c "import psycopg2; print('✓ psycopg2 available')" || {
