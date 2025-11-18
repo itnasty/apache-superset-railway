@@ -12,10 +12,13 @@ RUN apt-get update && apt-get install -y \
     python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
-# Ensure pip is available in the venv and install database drivers
+# Ensure pip is available in the venv and install ALL database drivers
+# pymysql - required for MySQL connections
+# mysqlclient - alternative MySQL driver
+# psycopg2-binary - required for PostgreSQL connections
 RUN python3 -m ensurepip --default-pip || true && \
     python3 -m pip install --upgrade pip && \
-    python3 -m pip install --no-cache-dir mysqlclient psycopg2-binary
+    python3 -m pip install --no-cache-dir pymysql mysqlclient psycopg2-binary
 
 ENV ADMIN_USERNAME $ADMIN_USERNAME
 ENV ADMIN_EMAIL $ADMIN_EMAIL
