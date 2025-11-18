@@ -1,16 +1,6 @@
 import os
-import sys
 from typing import Any, Dict, Optional
-
-# CRITICAL: Import the MySQL patch FIRST before Superset loads engine specs
-# This must happen before any other Superset imports
-try:
-    # Add the config directory to the path so we can import the patch
-    sys.path.insert(0, '/app')
-    from mysql_patch import patch_mysql_engine_spec
-    print("MySQL engine spec patch loaded successfully")
-except Exception as e:
-    print(f"Warning: Could not load MySQL patch: {e}")
+from datetime import timedelta
 
 # Read database URL from environment
 SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL")
@@ -52,7 +42,8 @@ SQLALCHEMY_POOL_TIMEOUT = int(os.environ.get("SQLALCHEMY_POOL_TIMEOUT", "30"))
 SQLALCHEMY_POOL_PRE_PING = True
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-# Additional safety: DB_CONNECTION_MUTATOR as backup
+# CRITICAL FIX: Custom hook to modify database engine parameters
+# This function is called by Superset when creating database engines
 def DB_CONNECTION_MUTATOR(
     uri: str,
     params: Dict[str, Any],
@@ -61,19 +52,28 @@ def DB_CONNECTION_MUTATOR(
     source: Any,
 ) -> None:
     """
-    Backup mutator to remove pool_recycle from connection parameters.
-    The MySQL patch should handle this, but this provides additional safety.
+    Mutator to fix the pool_recycle issue for ALL database connections.
+    Superset's MySQL engine spec sets pool_recycle as an integer, but
+    SQLAlchemy 2.x requires a timedelta object.
     """
-    # Remove pool_recycle if it exists
-    params.pop('pool_recycle', None)
+    # Check if pool_recycle exists and is an integer
+    if 'pool_recycle' in params:
+        pool_recycle_value = params['pool_recycle']
+        if isinstance(pool_recycle_value, int):
+            # Convert integer to timedelta
+            params['pool_recycle'] = timedelta(seconds=pool_recycle_value)
+            print(f"✅ Converted pool_recycle from {pool_recycle_value} (int) to timedelta")
+        elif pool_recycle_value is None or pool_recycle_value == 0:
+            # Remove if None or 0
+            params.pop('pool_recycle', None)
+            print("✅ Removed pool_recycle (was None or 0)")
     
-    # Set safe connection pool parameters
+    # Ensure pool_pre_ping is enabled for connection health checks
     params['pool_pre_ping'] = True
-    params['pool_size'] = 5
-    params['max_overflow'] = 10
-    params['pool_timeout'] = 30
+    
+    print(f"✅ DB_CONNECTION_MUTATOR applied for {uri[:50]}...")
 
-# Engine options - DO NOT include pool_recycle
+# Engine options
 SQLALCHEMY_ENGINE_OPTIONS = {
     "pool_pre_ping": True,
 }
