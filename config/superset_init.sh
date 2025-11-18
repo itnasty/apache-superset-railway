@@ -3,6 +3,20 @@ set -e
 
 echo "Starting Superset initialization..."
 
+# Print version information for debugging
+echo "📦 Checking installed package versions..."
+python3 << VERSION_CHECK
+import sqlalchemy
+import pymysql
+import MySQLdb
+import psycopg2
+
+print(f"✅ SQLAlchemy version: {sqlalchemy.__version__}")
+print(f"✅ PyMySQL version: {pymysql.__version__}")
+print(f"✅ mysqlclient version: {MySQLdb.__version__}")
+print(f"✅ psycopg2 version: {psycopg2.__version__}")
+VERSION_CHECK
+
 echo "🔧 Resetting database schema..."
 
 # Use Python to completely reset the database
