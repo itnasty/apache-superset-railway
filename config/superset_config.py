@@ -1,6 +1,8 @@
 import os
 from typing import Any, Dict, Optional
 from datetime import timedelta
+from functools import wraps
+import sqlalchemy
 
 # Read database URL from environment
 SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL")
@@ -8,6 +10,30 @@ SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL")
 # If DATABASE_URL is not set, this will cause an error
 if not SQLALCHEMY_DATABASE_URI:
     raise ValueError("DATABASE_URL environment variable is not set!")
+
+# CRITICAL FIX: Monkey-patch SQLAlchemy's create_engine to fix pool_recycle
+_original_create_engine = sqlalchemy.create_engine
+
+@wraps(_original_create_engine)
+def _patched_create_engine(*args, **kwargs):
+    """
+    Wrapper around SQLAlchemy's create_engine that converts
+    pool_recycle from int to timedelta if needed.
+    """
+    if 'pool_recycle' in kwargs:
+        pool_recycle_value = kwargs['pool_recycle']
+        if isinstance(pool_recycle_value, int) and pool_recycle_value > 0:
+            kwargs['pool_recycle'] = timedelta(seconds=pool_recycle_value)
+            print(f"🔧 Patched: Converted pool_recycle from {pool_recycle_value}s to timedelta")
+        elif pool_recycle_value == 0 or pool_recycle_value is None:
+            kwargs.pop('pool_recycle', None)
+            print("🔧 Patched: Removed pool_recycle (was 0 or None)")
+    
+    return _original_create_engine(*args, **kwargs)
+
+# Replace SQLAlchemy's create_engine with our patched version
+sqlalchemy.create_engine = _patched_create_engine
+print("✅ SQLAlchemy create_engine patched successfully")
 
 # Redis configuration
 REDIS_HOST = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
@@ -42,46 +68,23 @@ SQLALCHEMY_POOL_TIMEOUT = int(os.environ.get("SQLALCHEMY_POOL_TIMEOUT", "30"))
 SQLALCHEMY_POOL_PRE_PING = True
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-# CRITICAL FIX: Custom hook to modify database engine parameters
+# DB_CONNECTION_MUTATOR as additional safety layer
 def DB_CONNECTION_MUTATOR(url, params, username, security_manager, source):
     """
-    Mutator to fix the pool_recycle issue for ALL database connections.
-    
-    Args:
-        url: SQLAlchemy URL object
-        params: Dictionary of engine parameters
-        username: Optional username
-        security_manager: Superset security manager
-        source: Source of the connection
-    
-    Returns:
-        tuple: (url, modified_params) - MUST return both!
+    Additional safety layer for connection parameters.
+    The main fix is the SQLAlchemy patch above, but this provides backup.
     """
     try:
-        # Check if pool_recycle exists and is an integer
-        if 'pool_recycle' in params:
-            pool_recycle_value = params['pool_recycle']
-            if isinstance(pool_recycle_value, int):
-                # Convert integer to timedelta
-                params['pool_recycle'] = timedelta(seconds=pool_recycle_value)
-                print(f"✅ Converted pool_recycle from {pool_recycle_value} (int) to timedelta")
-            elif pool_recycle_value is None or pool_recycle_value == 0:
-                # Remove if None or 0
-                params.pop('pool_recycle', None)
-                print("✅ Removed pool_recycle (was None or 0)")
-        
-        # Ensure pool_pre_ping is enabled for connection health checks
+        # Ensure pool_pre_ping is enabled
         params['pool_pre_ping'] = True
         
-        # Get database name for logging
+        # Log for debugging
         db_name = getattr(url, 'database', 'unknown')
-        print(f"✅ DB_CONNECTION_MUTATOR successfully applied for database: {db_name}")
+        print(f"✅ DB_CONNECTION_MUTATOR applied for database: {db_name}")
         
     except Exception as e:
         print(f"⚠️  Error in DB_CONNECTION_MUTATOR: {e}")
-        # Don't raise - allow connection to proceed
     
-    # CRITICAL: Must return the tuple (url, params)
     return url, params
 
 # Engine options
