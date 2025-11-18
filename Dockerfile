@@ -7,10 +7,17 @@ RUN apt-get update && apt-get install -y \
     libmariadb-dev \
     default-libmysqlclient-dev \
     build-essential \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install database drivers in the virtual environment (not root python)
-RUN /app/.venv/bin/pip install mysqlclient psycopg2-binary
+# Switch to superset user to install in their venv
+USER superset
+
+# Install database drivers in the virtual environment
+RUN /app/.venv/bin/pip install --no-cache-dir mysqlclient psycopg2-binary
+
+# Switch back to root for remaining setup
+USER root
 
 ENV ADMIN_USERNAME $ADMIN_USERNAME
 ENV ADMIN_EMAIL $ADMIN_EMAIL
