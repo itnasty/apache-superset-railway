@@ -48,8 +48,6 @@ SQLALCHEMY_TRACK_MODIFICATIONS = False
 # Global database configuration - applies to all database connections
 # Remove pool_recycle to prevent the 'total_seconds' error
 # Superset will use database-specific defaults instead
-from superset.db_engine_specs.mysql import MySQLEngineSpec
-from superset.db_engine_specs.postgres import PostgresEngineSpec
 
 # Override default engine parameters to prevent pool_recycle issues
 DB_CONNECTION_MUTATOR = None
