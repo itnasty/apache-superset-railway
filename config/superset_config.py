@@ -34,49 +34,29 @@ TEST_DATABASE_CONNECTION_TIMEOUT = int(os.environ.get("TEST_DATABASE_CONNECTION_
 SQLLAB_TIMEOUT = int(os.environ.get("SQLLAB_TIMEOUT", "300"))
 SUPERSET_WEBSERVER_TIMEOUT = int(os.environ.get("SUPERSET_WEBSERVER_TIMEOUT", "300"))
 
-# SQLAlchemy connection pool settings for metadata database
+# SQLAlchemy connection pool settings for metadata database ONLY
 SQLALCHEMY_POOL_SIZE = int(os.environ.get("SQLALCHEMY_POOL_SIZE", "10"))
 SQLALCHEMY_MAX_OVERFLOW = int(os.environ.get("SQLALCHEMY_MAX_OVERFLOW", "20"))
 SQLALCHEMY_POOL_TIMEOUT = int(os.environ.get("SQLALCHEMY_POOL_TIMEOUT", "30"))
-SQLALCHEMY_POOL_RECYCLE = 3600
+# Convert to timedelta to avoid the 'total_seconds' error
+SQLALCHEMY_POOL_RECYCLE = timedelta(seconds=3600)
 SQLALCHEMY_POOL_PRE_PING = True
-
-# CRITICAL FIX: Prevent pool_recycle errors with external databases
-# This applies to ALL databases added through the UI
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-# Global database configuration - applies to all database connections
-# Remove pool_recycle to prevent the 'total_seconds' error
-# Superset will use database-specific defaults instead
+# CRITICAL: Do NOT apply pool_recycle to external databases
+# This prevents the 'int' object has no attribute 'total_seconds' error
+# when adding databases through the UI
+SQLALCHEMY_ENGINE_OPTIONS = {
+    "pool_pre_ping": True,
+}
 
-# Override default engine parameters to prevent pool_recycle issues
-DB_CONNECTION_MUTATOR = None
-
-# Custom function to modify engine parameters for external databases
-def _custom_engine_params(database, sqlalchemy_uri, params):
+# Custom function to modify connection parameters for external databases
+def SQL_QUERY_MUTATOR(sql, **kwargs):
     """
-    Custom engine parameters that avoid the pool_recycle issue.
-    This function is called when creating engines for external databases.
+    A function to mutate SQL queries before execution.
+    This is a placeholder for future customizations.
     """
-    # Remove problematic parameters
-    params.pop('pool_recycle', None)
-    
-    # Set safe defaults
-    params['pool_pre_ping'] = True
-    params['pool_size'] = 5
-    params['max_overflow'] = 10
-    params['pool_timeout'] = 30
-    
-    # Add connect timeout to connect_args
-    if 'connect_args' not in params:
-        params['connect_args'] = {}
-    
-    params['connect_args']['connect_timeout'] = 30
-    
-    return params
-
-# Apply the custom engine params function
-DB_ENGINE_PARAMS = _custom_engine_params
+    return sql
 
 # Allow connecting to private databases
 PREVENT_UNSAFE_DB_CONNECTIONS = os.environ.get("PREVENT_UNSAFE_DB_CONNECTIONS", "false").lower() == "true"
