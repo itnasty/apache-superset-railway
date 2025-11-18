@@ -48,13 +48,14 @@ def DB_CONNECTION_MUTATOR(url, params, username, security_manager, source):
     Mutator to fix the pool_recycle issue for ALL database connections.
     
     Args:
-        url: SQLAlchemy URL object (not a string!)
+        url: SQLAlchemy URL object
         params: Dictionary of engine parameters
         username: Optional username
         security_manager: Superset security manager
         source: Source of the connection
     
-    This function modifies params in-place and returns None.
+    Returns:
+        tuple: (url, modified_params) - MUST return both!
     """
     try:
         # Check if pool_recycle exists and is an integer
@@ -79,6 +80,9 @@ def DB_CONNECTION_MUTATOR(url, params, username, security_manager, source):
     except Exception as e:
         print(f"⚠️  Error in DB_CONNECTION_MUTATOR: {e}")
         # Don't raise - allow connection to proceed
+    
+    # CRITICAL: Must return the tuple (url, params)
+    return url, params
 
 # Engine options
 SQLALCHEMY_ENGINE_OPTIONS = {
