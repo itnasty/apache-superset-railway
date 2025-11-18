@@ -2,6 +2,7 @@ FROM apache/superset:latest
 
 USER root
 
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     pkg-config \
     libmariadb-dev \
@@ -10,13 +11,13 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Switch to superset user to install in their venv
+# Switch to superset user and install Python packages
 USER superset
 
-# Install database drivers in the virtual environment
-RUN /app/.venv/bin/pip install --no-cache-dir mysqlclient psycopg2-binary
+# Install database drivers - pip will automatically install to the right location
+RUN pip install --no-cache-dir mysqlclient psycopg2-binary
 
-# Switch back to root for remaining setup
+# Switch back to root for file operations
 USER root
 
 ENV ADMIN_USERNAME $ADMIN_USERNAME
