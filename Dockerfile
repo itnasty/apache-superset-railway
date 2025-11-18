@@ -9,12 +9,12 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install mysqlclient psycopg2
+# Install database drivers in the virtual environment (not root python)
+RUN /app/.venv/bin/pip install mysqlclient psycopg2-binary
 
 ENV ADMIN_USERNAME $ADMIN_USERNAME
 ENV ADMIN_EMAIL $ADMIN_EMAIL
 ENV ADMIN_PASSWORD $ADMIN_PASSWORD
-ENV DATABASE $DATABASE
 
 COPY /config/superset_init.sh ./superset_init.sh
 RUN chmod +x ./superset_init.sh
