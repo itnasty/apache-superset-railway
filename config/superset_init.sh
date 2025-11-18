@@ -3,16 +3,9 @@ set -e
 
 echo "Starting Superset initialization..."
 
-# Extract database connection details from DATABASE_URL
-DB_HOST=$(echo $DATABASE_URL | sed -n 's/.*@\([^:]*\):.*/\1/p')
-DB_PORT=$(echo $DATABASE_URL | sed -n 's/.*:\([0-9]*\)\/.*/\1/p')
-DB_NAME=$(echo $DATABASE_URL | sed -n 's/.*\/\([^?]*\).*/\1/p')
-DB_USER=$(echo $DATABASE_URL | sed -n 's/.*\/\/\([^:]*\):.*/\1/p')
-DB_PASS=$(echo $DATABASE_URL | sed -n 's/.*:\/\/[^:]*:\([^@]*\)@.*/\1/p')
+echo "🔧 Resetting database schema..."
 
-echo "🔧 Fixing Alembic migration state..."
-
-# Use Python to fix the alembic version table
+# Use Python to completely reset the database
 python3 << PYTHON_EOF
 import os
 from sqlalchemy import create_engine, text
@@ -21,34 +14,19 @@ database_url = os.environ.get('DATABASE_URL')
 engine = create_engine(database_url)
 
 with engine.connect() as conn:
-    # Check if alembic_version table exists
-    result = conn.execute(text("""
-        SELECT EXISTS (
-            SELECT FROM information_schema.tables 
-            WHERE table_name = 'alembic_version'
-        );
-    """))
+    print("⚠️  WARNING: Dropping all existing tables and recreating schema...")
+    print("This will delete all existing Superset data!")
     
-    table_exists = result.scalar()
+    # Drop the public schema and recreate it
+    conn.execute(text("DROP SCHEMA IF EXISTS public CASCADE;"))
+    conn.execute(text("CREATE SCHEMA public;"))
+    conn.execute(text("GRANT ALL ON SCHEMA public TO postgres;"))
+    conn.execute(text("GRANT ALL ON SCHEMA public TO public;"))
+    conn.commit()
     
-    if table_exists:
-        print("📋 Checking current alembic version...")
-        result = conn.execute(text("SELECT * FROM alembic_version;"))
-        versions = result.fetchall()
-        
-        if versions:
-            print(f"Found versions: {versions}")
-            print("🗑️  Deleting problematic alembic version...")
-            conn.execute(text("DELETE FROM alembic_version;"))
-            conn.commit()
-            print("✅ Alembic version table cleared")
-        else:
-            print("ℹ️  Alembic version table is already empty")
-    else:
-        print("ℹ️  Alembic version table doesn't exist yet")
+    print("✅ Database schema reset complete")
 
 engine.dispose()
-print("✅ Migration state fixed")
 PYTHON_EOF
 
 echo "Upgrading Superset metastore..."
