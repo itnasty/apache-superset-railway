@@ -2,14 +2,18 @@ FROM apache/superset:latest
 
 USER root
 
-# Install dependencies including cron for cache warming
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
     pkg-config \
     default-libmysqlclient-dev \
     libpq-dev \
     cron \
+    python3-pip \
     && rm -rf /var/lib/apt/lists/*
+
+# Install database drivers using system Python (critical for PostgreSQL support)
+RUN python3 -m pip install --no-cache-dir mysqlclient psycopg2-binary
 
 # Create data directory
 RUN mkdir -p /app/data && chown -R superset:superset /app/data
@@ -18,10 +22,10 @@ RUN mkdir -p /app/data && chown -R superset:superset /app/data
 COPY requirements.txt /app/
 RUN chown superset:superset /app/requirements.txt
 
-# Switch to superset user - their pip will install to their venv automatically
+# Switch to superset user
 USER superset
 
-# Install packages - superset user's pip defaults to venv
+# Install additional packages in venv
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
 # Switch back to root
