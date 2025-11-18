@@ -84,7 +84,8 @@ CELERY_CONFIG = CeleryConfig
 SECRET_KEY = os.environ.get("SECRET_KEY", "CHANGE_ME_TO_A_COMPLEX_RANDOM_SECRET")
 
 # Timeout configurations
-TEST_DATABASE_CONNECTION_TIMEOUT = int(os.environ.get("TEST_DATABASE_CONNECTION_TIMEOUT", "120"))
+# DO NOT set TEST_DATABASE_CONNECTION_TIMEOUT - it causes "'int' object has no attribute 'total_seconds'" error
+# The MySQL/MariaDB driver will use its own defaults
 SQLLAB_TIMEOUT = int(os.environ.get("SQLLAB_TIMEOUT", "300"))
 SUPERSET_WEBSERVER_TIMEOUT = int(os.environ.get("SUPERSET_WEBSERVER_TIMEOUT", "300"))
 
@@ -111,7 +112,8 @@ def DB_CONNECTION_MUTATOR(url, params, username, security_manager, source):
     Mutator function for database connections added through the UI.
     Ensures proper parameter types and connection settings.
     
-    CRITICAL: NullPool doesn't accept pooling parameters and needs minimal config!
+    CRITICAL FIX: Never add connect_timeout to connect_args for MySQL/MariaDB!
+    This causes the "'int' object has no attribute 'total_seconds'" error in Superset 4.x
     """
     try:
         # Check if NullPool is being used
@@ -122,8 +124,12 @@ def DB_CONNECTION_MUTATOR(url, params, username, security_manager, source):
         
         # Log the pool class for debugging
         db_name = getattr(url, 'database', 'unknown')
-        print(f"🔍 DB_CONNECTION_MUTATOR for database: {db_name}")
+        drivername = getattr(url, 'drivername', 'unknown')
+        print(f"🔍 DB_CONNECTION_MUTATOR for database: {db_name} (driver: {drivername})")
         print(f"   Pool class: {poolclass}")
+        
+        # Check if this is a MySQL/MariaDB connection
+        is_mysql = 'mysql' in drivername.lower() or 'mariadb' in drivername.lower()
         
         # For NullPool, use minimal configuration
         if is_null_pool:
@@ -140,12 +146,21 @@ def DB_CONNECTION_MUTATOR(url, params, username, security_manager, source):
                     print(f"   Removing {param} (not compatible with NullPool)")
                     params.pop(param)
             
-            # For NullPool, keep connect_args minimal
-            # Don't add connect_timeout - let pymysql/driver use defaults
-            if 'connect_args' not in params:
-                params['connect_args'] = {}
-            
-            print(f"   Using driver defaults for connection timeout")
+            # CRITICAL: For MySQL/MariaDB with NullPool, DO NOT add connect_timeout
+            # This causes the "'int' object has no attribute 'total_seconds'" error
+            if is_mysql:
+                print(f"   MySQL/MariaDB connection detected - NOT adding connect_timeout")
+                # Ensure connect_args exists but is empty or minimal
+                if 'connect_args' not in params:
+                    params['connect_args'] = {}
+                # Remove connect_timeout if it exists
+                if 'connect_timeout' in params.get('connect_args', {}):
+                    params['connect_args'].pop('connect_timeout')
+                    print(f"   Removed connect_timeout from connect_args")
+            else:
+                # For non-MySQL databases, keep minimal connect_args
+                if 'connect_args' not in params:
+                    params['connect_args'] = {}
             
         else:
             # For regular pooling (QueuePool, etc.), add pool parameters
@@ -178,16 +193,18 @@ def DB_CONNECTION_MUTATOR(url, params, username, security_manager, source):
             if 'connect_args' not in params:
                 params['connect_args'] = {}
             
-            # Set connection timeout for regular pools
-            if 'connect_timeout' not in params['connect_args']:
-                params['connect_args']['connect_timeout'] = TEST_DATABASE_CONNECTION_TIMEOUT
-            
-            # Ensure connect_timeout is an integer
-            if 'connect_timeout' in params['connect_args']:
-                try:
-                    params['connect_args']['connect_timeout'] = int(params['connect_args']['connect_timeout'])
-                except (TypeError, ValueError):
-                    params['connect_args']['connect_timeout'] = TEST_DATABASE_CONNECTION_TIMEOUT
+            # CRITICAL: For MySQL/MariaDB, DO NOT add connect_timeout even for regular pools
+            # Let the driver use its own defaults
+            if is_mysql:
+                print(f"   MySQL/MariaDB connection - NOT setting connect_timeout (driver default)")
+                # Remove connect_timeout if it exists
+                if 'connect_timeout' in params.get('connect_args', {}):
+                    params['connect_args'].pop('connect_timeout')
+                    print(f"   Removed connect_timeout from connect_args")
+            else:
+                # For non-MySQL databases, it's safer to also not add connect_timeout
+                # unless specifically needed
+                print(f"   Not setting connect_timeout (using driver defaults)")
         
         print(f"✅ DB_CONNECTION_MUTATOR completed for database: {db_name}")
         
