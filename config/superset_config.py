@@ -43,35 +43,42 @@ SQLALCHEMY_POOL_PRE_PING = True
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 # CRITICAL FIX: Custom hook to modify database engine parameters
-# This function is called by Superset when creating database engines
-def DB_CONNECTION_MUTATOR(
-    uri: str,
-    params: Dict[str, Any],
-    username: Optional[str],
-    security_manager: Any,
-    source: Any,
-) -> None:
+def DB_CONNECTION_MUTATOR(url, params, username, security_manager, source):
     """
     Mutator to fix the pool_recycle issue for ALL database connections.
-    Superset's MySQL engine spec sets pool_recycle as an integer, but
-    SQLAlchemy 2.x requires a timedelta object.
+    
+    Args:
+        url: SQLAlchemy URL object (not a string!)
+        params: Dictionary of engine parameters
+        username: Optional username
+        security_manager: Superset security manager
+        source: Source of the connection
+    
+    This function modifies params in-place and returns None.
     """
-    # Check if pool_recycle exists and is an integer
-    if 'pool_recycle' in params:
-        pool_recycle_value = params['pool_recycle']
-        if isinstance(pool_recycle_value, int):
-            # Convert integer to timedelta
-            params['pool_recycle'] = timedelta(seconds=pool_recycle_value)
-            print(f"✅ Converted pool_recycle from {pool_recycle_value} (int) to timedelta")
-        elif pool_recycle_value is None or pool_recycle_value == 0:
-            # Remove if None or 0
-            params.pop('pool_recycle', None)
-            print("✅ Removed pool_recycle (was None or 0)")
-    
-    # Ensure pool_pre_ping is enabled for connection health checks
-    params['pool_pre_ping'] = True
-    
-    print(f"✅ DB_CONNECTION_MUTATOR applied for {uri[:50]}...")
+    try:
+        # Check if pool_recycle exists and is an integer
+        if 'pool_recycle' in params:
+            pool_recycle_value = params['pool_recycle']
+            if isinstance(pool_recycle_value, int):
+                # Convert integer to timedelta
+                params['pool_recycle'] = timedelta(seconds=pool_recycle_value)
+                print(f"✅ Converted pool_recycle from {pool_recycle_value} (int) to timedelta")
+            elif pool_recycle_value is None or pool_recycle_value == 0:
+                # Remove if None or 0
+                params.pop('pool_recycle', None)
+                print("✅ Removed pool_recycle (was None or 0)")
+        
+        # Ensure pool_pre_ping is enabled for connection health checks
+        params['pool_pre_ping'] = True
+        
+        # Get database name for logging
+        db_name = getattr(url, 'database', 'unknown')
+        print(f"✅ DB_CONNECTION_MUTATOR successfully applied for database: {db_name}")
+        
+    except Exception as e:
+        print(f"⚠️  Error in DB_CONNECTION_MUTATOR: {e}")
+        # Don't raise - allow connection to proceed
 
 # Engine options
 SQLALCHEMY_ENGINE_OPTIONS = {
