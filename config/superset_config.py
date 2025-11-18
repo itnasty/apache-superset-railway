@@ -1,5 +1,4 @@
 import os
-from datetime import timedelta
 
 # Read database URL from environment
 SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL")
@@ -34,29 +33,21 @@ TEST_DATABASE_CONNECTION_TIMEOUT = int(os.environ.get("TEST_DATABASE_CONNECTION_
 SQLLAB_TIMEOUT = int(os.environ.get("SQLLAB_TIMEOUT", "300"))
 SUPERSET_WEBSERVER_TIMEOUT = int(os.environ.get("SUPERSET_WEBSERVER_TIMEOUT", "300"))
 
-# SQLAlchemy connection pool settings for metadata database ONLY
+# SQLAlchemy connection pool settings for metadata database
+# Keep these settings simple and compatible
 SQLALCHEMY_POOL_SIZE = int(os.environ.get("SQLALCHEMY_POOL_SIZE", "10"))
 SQLALCHEMY_MAX_OVERFLOW = int(os.environ.get("SQLALCHEMY_MAX_OVERFLOW", "20"))
 SQLALCHEMY_POOL_TIMEOUT = int(os.environ.get("SQLALCHEMY_POOL_TIMEOUT", "30"))
-# Convert to timedelta to avoid the 'total_seconds' error
-SQLALCHEMY_POOL_RECYCLE = timedelta(seconds=3600)
+# DO NOT SET SQLALCHEMY_POOL_RECYCLE - it causes issues with external databases
+# SQLAlchemy will use its default behavior which works correctly
 SQLALCHEMY_POOL_PRE_PING = True
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-# CRITICAL: Do NOT apply pool_recycle to external databases
-# This prevents the 'int' object has no attribute 'total_seconds' error
-# when adding databases through the UI
+# Engine options for all databases (metadata + external)
+# Only set pool_pre_ping, do NOT set pool_recycle
 SQLALCHEMY_ENGINE_OPTIONS = {
     "pool_pre_ping": True,
 }
-
-# Custom function to modify connection parameters for external databases
-def SQL_QUERY_MUTATOR(sql, **kwargs):
-    """
-    A function to mutate SQL queries before execution.
-    This is a placeholder for future customizations.
-    """
-    return sql
 
 # Allow connecting to private databases
 PREVENT_UNSAFE_DB_CONNECTIONS = os.environ.get("PREVENT_UNSAFE_DB_CONNECTIONS", "false").lower() == "true"
