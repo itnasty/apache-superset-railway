@@ -6,13 +6,20 @@ echo "Starting Superset with optimized configuration..."
 # Database setup
 superset db upgrade || echo "DB upgrade failed, continuing..."
 
-# Create admin user if it doesn't exist
-superset fab create-admin \
+# Create or update admin user
+echo "Setting up admin user..."
+if superset fab create-admin \
     --username "${ADMIN_USERNAME:-admin}" \
     --firstname Superset \
     --lastname Admin \
     --email "${ADMIN_EMAIL:-admin@example.com}" \
-    --password "${ADMIN_PASSWORD:-admin}" || echo "Admin user already exists"
+    --password "${ADMIN_PASSWORD:-admin}"; then
+    echo "✅ Admin user created successfully"
+else
+    echo "⚠️  Admin user already exists, resetting password..."
+    superset fab reset-password --username "${ADMIN_USERNAME:-admin}" --password "${ADMIN_PASSWORD:-admin}"
+    echo "✅ Admin password reset successfully"
+fi
 
 # Initialize Superset
 superset init || echo "Init failed, continuing..."
