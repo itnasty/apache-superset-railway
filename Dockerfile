@@ -11,14 +11,9 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Switch to superset user and install Python packages
-USER superset
-
-# Install database drivers - pip will automatically install to the right location
-RUN pip install --no-cache-dir mysqlclient psycopg2-binary
-
-# Switch back to root for file operations
-USER root
+# Install database drivers to the virtual environment as root
+# This ensures they're installed in /app/.venv where Superset can find them
+RUN /app/.venv/bin/pip install --no-cache-dir mysqlclient psycopg2-binary
 
 ENV ADMIN_USERNAME $ADMIN_USERNAME
 ENV ADMIN_EMAIL $ADMIN_EMAIL
