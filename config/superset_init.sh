@@ -11,21 +11,20 @@ import os
 from sqlalchemy import create_engine, text
 
 database_url = os.environ.get('DATABASE_URL')
-engine = create_engine(database_url)
+engine = create_engine(database_url, isolation_level="AUTOCOMMIT")
 
+print("⚠️  WARNING: Dropping all existing tables and recreating schema...")
+print("This will delete all existing Superset data!")
+
+# Use AUTOCOMMIT isolation level for DDL statements
 with engine.connect() as conn:
-    print("⚠️  WARNING: Dropping all existing tables and recreating schema...")
-    print("This will delete all existing Superset data!")
-    
     # Drop the public schema and recreate it
     conn.execute(text("DROP SCHEMA IF EXISTS public CASCADE;"))
     conn.execute(text("CREATE SCHEMA public;"))
     conn.execute(text("GRANT ALL ON SCHEMA public TO postgres;"))
     conn.execute(text("GRANT ALL ON SCHEMA public TO public;"))
-    conn.commit()
     
-    print("✅ Database schema reset complete")
-
+print("✅ Database schema reset complete")
 engine.dispose()
 PYTHON_EOF
 
