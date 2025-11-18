@@ -16,18 +16,22 @@ RUN apt-get update && apt-get install -y \
 # pymysql - required for MySQL connections
 # mysqlclient - alternative MySQL driver
 # psycopg2-binary - required for PostgreSQL connections
-RUN python3 -m ensurepip --default-pip || true && \
-    python3 -m pip install --upgrade pip && \
+RUN python3 -m pip install --upgrade pip && \
     python3 -m pip install --no-cache-dir pymysql mysqlclient psycopg2-binary
 
 ENV ADMIN_USERNAME $ADMIN_USERNAME
 ENV ADMIN_EMAIL $ADMIN_EMAIL
 ENV ADMIN_PASSWORD $ADMIN_PASSWORD
 
+# Copy initialization script
 COPY /config/superset_init.sh ./superset_init.sh
 RUN chmod +x ./superset_init.sh
 
-COPY /config/superset_config.py /app/
+# Copy MySQL patch FIRST (must be available before config loads)
+COPY /config/mysql_patch.py /app/mysql_patch.py
+
+# Copy Superset configuration
+COPY /config/superset_config.py /app/superset_config.py
 ENV SUPERSET_CONFIG_PATH /app/superset_config.py
 ENV SECRET_KEY $SECRET_KEY
 
