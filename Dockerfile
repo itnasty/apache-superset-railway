@@ -9,11 +9,13 @@ RUN apt-get update && apt-get install -y \
     default-libmysqlclient-dev \
     build-essential \
     libpq-dev \
+    python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
-# Install database drivers using Python's module approach
-# This works regardless of virtual environment setup
-RUN python3 -m pip install --no-cache-dir mysqlclient psycopg2-binary
+# Ensure pip is available in the venv and install database drivers
+RUN python3 -m ensurepip --default-pip || true && \
+    python3 -m pip install --upgrade pip && \
+    python3 -m pip install --no-cache-dir mysqlclient psycopg2-binary
 
 ENV ADMIN_USERNAME $ADMIN_USERNAME
 ENV ADMIN_EMAIL $ADMIN_EMAIL
