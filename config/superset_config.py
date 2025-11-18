@@ -1,5 +1,16 @@
 import os
+import sys
 from typing import Any, Dict, Optional
+
+# CRITICAL: Import the MySQL patch FIRST before Superset loads engine specs
+# This must happen before any other Superset imports
+try:
+    # Add the config directory to the path so we can import the patch
+    sys.path.insert(0, '/app')
+    from mysql_patch import patch_mysql_engine_spec
+    print("MySQL engine spec patch loaded successfully")
+except Exception as e:
+    print(f"Warning: Could not load MySQL patch: {e}")
 
 # Read database URL from environment
 SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL")
@@ -41,8 +52,7 @@ SQLALCHEMY_POOL_TIMEOUT = int(os.environ.get("SQLALCHEMY_POOL_TIMEOUT", "30"))
 SQLALCHEMY_POOL_PRE_PING = True
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-# CRITICAL FIX: Hook into Superset's database engine creation
-# This function is called whenever Superset creates a database engine (for external databases)
+# Additional safety: DB_CONNECTION_MUTATOR as backup
 def DB_CONNECTION_MUTATOR(
     uri: str,
     params: Dict[str, Any],
@@ -51,10 +61,10 @@ def DB_CONNECTION_MUTATOR(
     source: Any,
 ) -> None:
     """
-    Mutator function to modify database connection parameters.
-    This prevents the pool_recycle error by removing it from params.
+    Backup mutator to remove pool_recycle from connection parameters.
+    The MySQL patch should handle this, but this provides additional safety.
     """
-    # Remove pool_recycle if it exists to prevent the total_seconds error
+    # Remove pool_recycle if it exists
     params.pop('pool_recycle', None)
     
     # Set safe connection pool parameters
