@@ -28,9 +28,6 @@ ENV ADMIN_PASSWORD $ADMIN_PASSWORD
 COPY /config/superset_init.sh ./superset_init.sh
 RUN chmod +x ./superset_init.sh
 
-# Copy MySQL patch FIRST (must be available before config loads)
-COPY /config/mysql_patch.py /app/mysql_patch.py
-
 # Copy Superset configuration
 COPY /config/superset_config.py /app/superset_config.py
 ENV SUPERSET_CONFIG_PATH /app/superset_config.py
