@@ -11,23 +11,53 @@ SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL")
 if not SQLALCHEMY_DATABASE_URI:
     raise ValueError("DATABASE_URL environment variable is not set!")
 
-# CRITICAL FIX: Monkey-patch SQLAlchemy's create_engine to fix pool_recycle
+# CRITICAL FIX: Comprehensive monkey-patch for SQLAlchemy's create_engine
+# This fixes the "'int' object has no attribute 'total_seconds'" error
 _original_create_engine = sqlalchemy.create_engine
 
 @wraps(_original_create_engine)
 def _patched_create_engine(*args, **kwargs):
     """
-    Wrapper around SQLAlchemy's create_engine that converts
-    pool_recycle from int to timedelta if needed.
+    Wrapper around SQLAlchemy's create_engine that properly handles
+    all timeout and pool-related parameters.
     """
+    # Parameters that should remain as integers (seconds)
+    int_params = ['pool_timeout', 'pool_size', 'max_overflow', 'echo_pool']
+    
+    # Parameters that need timedelta conversion
+    timedelta_params = ['pool_recycle']
+    
+    # Handle pool_recycle conversion
     if 'pool_recycle' in kwargs:
         pool_recycle_value = kwargs['pool_recycle']
         if isinstance(pool_recycle_value, int) and pool_recycle_value > 0:
-            kwargs['pool_recycle'] = timedelta(seconds=pool_recycle_value)
-            print(f"🔧 Patched: Converted pool_recycle from {pool_recycle_value}s to timedelta")
+            # SQLAlchemy expects pool_recycle as int (seconds), not timedelta
+            # Keep it as int
+            print(f"🔧 pool_recycle set to {pool_recycle_value} seconds")
         elif pool_recycle_value == 0 or pool_recycle_value is None:
             kwargs.pop('pool_recycle', None)
-            print("🔧 Patched: Removed pool_recycle (was 0 or None)")
+            print("🔧 Removed pool_recycle (was 0 or None)")
+    
+    # Ensure pool_timeout is an integer
+    if 'pool_timeout' in kwargs:
+        pool_timeout_value = kwargs['pool_timeout']
+        if not isinstance(pool_timeout_value, (int, float)):
+            try:
+                kwargs['pool_timeout'] = int(pool_timeout_value)
+                print(f"🔧 Converted pool_timeout to int: {kwargs['pool_timeout']}")
+            except (TypeError, ValueError):
+                kwargs.pop('pool_timeout', None)
+                print("🔧 Removed invalid pool_timeout")
+    
+    # Clean up connect_args if present
+    if 'connect_args' in kwargs and isinstance(kwargs['connect_args'], dict):
+        connect_args = kwargs['connect_args']
+        # Ensure connect_timeout is an integer
+        if 'connect_timeout' in connect_args:
+            try:
+                connect_args['connect_timeout'] = int(connect_args['connect_timeout'])
+            except (TypeError, ValueError):
+                connect_args.pop('connect_timeout', None)
     
     return _original_create_engine(*args, **kwargs)
 
@@ -43,6 +73,8 @@ CACHE_CONFIG = {
     "CACHE_KEY_PREFIX": "superset_",
     "CACHE_REDIS_URL": REDIS_HOST,
 }
+
+DATA_CACHE_CONFIG = CACHE_CONFIG
 
 # Celery configuration for async queries
 class CeleryConfig:
@@ -62,21 +94,66 @@ SQLLAB_TIMEOUT = int(os.environ.get("SQLLAB_TIMEOUT", "300"))
 SUPERSET_WEBSERVER_TIMEOUT = int(os.environ.get("SUPERSET_WEBSERVER_TIMEOUT", "300"))
 
 # SQLAlchemy connection pool settings for metadata database
+# These are applied to Superset's own metadata database
 SQLALCHEMY_POOL_SIZE = int(os.environ.get("SQLALCHEMY_POOL_SIZE", "10"))
 SQLALCHEMY_MAX_OVERFLOW = int(os.environ.get("SQLALCHEMY_MAX_OVERFLOW", "20"))
 SQLALCHEMY_POOL_TIMEOUT = int(os.environ.get("SQLALCHEMY_POOL_TIMEOUT", "30"))
 SQLALCHEMY_POOL_PRE_PING = True
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-# DB_CONNECTION_MUTATOR as additional safety layer
+# Engine options for Superset's metadata database
+SQLALCHEMY_ENGINE_OPTIONS = {
+    "pool_pre_ping": True,
+    "pool_size": SQLALCHEMY_POOL_SIZE,
+    "max_overflow": SQLALCHEMY_MAX_OVERFLOW,
+    "pool_timeout": SQLALCHEMY_POOL_TIMEOUT,
+    "pool_recycle": 1800,  # Recycle connections after 30 minutes
+}
+
+# DB_CONNECTION_MUTATOR for user-added data source connections
 def DB_CONNECTION_MUTATOR(url, params, username, security_manager, source):
     """
-    Additional safety layer for connection parameters.
-    The main fix is the SQLAlchemy patch above, but this provides backup.
+    Mutator function for database connections added through the UI.
+    Ensures proper parameter types and connection settings.
     """
     try:
-        # Ensure pool_pre_ping is enabled
-        params['pool_pre_ping'] = True
+        # Ensure pool_pre_ping is enabled for reliability
+        if 'pool_pre_ping' not in params:
+            params['pool_pre_ping'] = True
+        
+        # Set reasonable pool sizes for data source connections
+        if 'pool_size' not in params:
+            params['pool_size'] = 5
+        if 'max_overflow' not in params:
+            params['max_overflow'] = 10
+        if 'pool_timeout' not in params:
+            params['pool_timeout'] = 30
+        if 'pool_recycle' not in params:
+            params['pool_recycle'] = 1800
+        
+        # Ensure all pool parameters are correct types
+        for param in ['pool_size', 'max_overflow', 'pool_timeout', 'pool_recycle']:
+            if param in params:
+                try:
+                    params[param] = int(params[param])
+                except (TypeError, ValueError):
+                    print(f"⚠️  Invalid {param} value, removing")
+                    params.pop(param, None)
+        
+        # Initialize connect_args if not present
+        if 'connect_args' not in params:
+            params['connect_args'] = {}
+        
+        # Set connection timeout for test connections
+        if 'connect_timeout' not in params['connect_args']:
+            params['connect_args']['connect_timeout'] = TEST_DATABASE_CONNECTION_TIMEOUT
+        
+        # Ensure connect_timeout is an integer
+        if 'connect_timeout' in params['connect_args']:
+            try:
+                params['connect_args']['connect_timeout'] = int(params['connect_args']['connect_timeout'])
+            except (TypeError, ValueError):
+                params['connect_args']['connect_timeout'] = TEST_DATABASE_CONNECTION_TIMEOUT
         
         # Log for debugging
         db_name = getattr(url, 'database', 'unknown')
@@ -84,13 +161,9 @@ def DB_CONNECTION_MUTATOR(url, params, username, security_manager, source):
         
     except Exception as e:
         print(f"⚠️  Error in DB_CONNECTION_MUTATOR: {e}")
+        # Don't fail, just log the error
     
     return url, params
-
-# Engine options
-SQLALCHEMY_ENGINE_OPTIONS = {
-    "pool_pre_ping": True,
-}
 
 # Allow connecting to private databases
 PREVENT_UNSAFE_DB_CONNECTIONS = os.environ.get("PREVENT_UNSAFE_DB_CONNECTIONS", "false").lower() == "true"
@@ -117,3 +190,6 @@ FLASK_ENV = os.environ.get("FLASK_ENV", "production")
 
 # Enable proxy fix for Railway
 ENABLE_PROXY_FIX = True
+
+# Mapbox API key (optional)
+MAPBOX_API_KEY = os.environ.get("MAPBOX_API_KEY", "")
