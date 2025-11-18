@@ -44,11 +44,11 @@ superset fab create-admin \
 
 echo "✅ Superset initialization complete!"
 
-# Start Superset
+# Start Superset with sync workers (no gevent required)
 exec gunicorn \
     --bind "0.0.0.0:${PORT:-8088}" \
     --workers 4 \
-    --worker-class gevent \
+    --worker-class sync \
     --threads 4 \
     --timeout 300 \
     --limit-request-line 0 \
