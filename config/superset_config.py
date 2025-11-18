@@ -111,7 +111,7 @@ def DB_CONNECTION_MUTATOR(url, params, username, security_manager, source):
     Mutator function for database connections added through the UI.
     Ensures proper parameter types and connection settings.
     
-    CRITICAL: NullPool doesn't accept pooling parameters!
+    CRITICAL: NullPool doesn't accept pooling parameters and needs minimal config!
     """
     try:
         # Check if NullPool is being used
@@ -125,18 +125,28 @@ def DB_CONNECTION_MUTATOR(url, params, username, security_manager, source):
         print(f"🔍 DB_CONNECTION_MUTATOR for database: {db_name}")
         print(f"   Pool class: {poolclass}")
         
-        # For NullPool, only set pool_pre_ping and connect_args
+        # For NullPool, use minimal configuration
         if is_null_pool:
-            print(f"⚠️  NullPool detected - skipping pool size parameters")
-            # NullPool only accepts pool_pre_ping
-            if 'pool_pre_ping' not in params:
-                params['pool_pre_ping'] = True
+            print(f"⚠️  NullPool detected - using minimal configuration")
             
-            # Remove any pool sizing parameters that were added
+            # Remove pool_pre_ping for NullPool (doesn't make sense without a pool)
+            if 'pool_pre_ping' in params:
+                params.pop('pool_pre_ping')
+                print(f"   Removed pool_pre_ping (not needed for NullPool)")
+            
+            # Remove any pool sizing parameters
             for param in ['pool_size', 'max_overflow', 'pool_timeout', 'pool_recycle']:
                 if param in params:
                     print(f"   Removing {param} (not compatible with NullPool)")
-                    params.pop(param, None)
+                    params.pop(param)
+            
+            # For NullPool, keep connect_args minimal
+            # Don't add connect_timeout - let pymysql/driver use defaults
+            if 'connect_args' not in params:
+                params['connect_args'] = {}
+            
+            print(f"   Using driver defaults for connection timeout")
+            
         else:
             # For regular pooling (QueuePool, etc.), add pool parameters
             print(f"✅ Regular pooling detected - adding pool parameters")
@@ -163,21 +173,21 @@ def DB_CONNECTION_MUTATOR(url, params, username, security_manager, source):
                     except (TypeError, ValueError):
                         print(f"⚠️  Invalid {param} value, removing")
                         params.pop(param, None)
-        
-        # Initialize connect_args if not present (works for both pool types)
-        if 'connect_args' not in params:
-            params['connect_args'] = {}
-        
-        # Set connection timeout for all connections
-        if 'connect_timeout' not in params['connect_args']:
-            params['connect_args']['connect_timeout'] = TEST_DATABASE_CONNECTION_TIMEOUT
-        
-        # Ensure connect_timeout is an integer
-        if 'connect_timeout' in params['connect_args']:
-            try:
-                params['connect_args']['connect_timeout'] = int(params['connect_args']['connect_timeout'])
-            except (TypeError, ValueError):
+            
+            # Initialize connect_args if not present
+            if 'connect_args' not in params:
+                params['connect_args'] = {}
+            
+            # Set connection timeout for regular pools
+            if 'connect_timeout' not in params['connect_args']:
                 params['connect_args']['connect_timeout'] = TEST_DATABASE_CONNECTION_TIMEOUT
+            
+            # Ensure connect_timeout is an integer
+            if 'connect_timeout' in params['connect_args']:
+                try:
+                    params['connect_args']['connect_timeout'] = int(params['connect_args']['connect_timeout'])
+                except (TypeError, ValueError):
+                    params['connect_args']['connect_timeout'] = TEST_DATABASE_CONNECTION_TIMEOUT
         
         print(f"✅ DB_CONNECTION_MUTATOR completed for database: {db_name}")
         
