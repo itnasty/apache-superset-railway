@@ -12,8 +12,8 @@ RUN apt-get update && apt-get install -y \
     python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
-# Install database drivers using system Python (critical for PostgreSQL support)
-RUN python3 -m pip install --no-cache-dir mysqlclient psycopg2-binary
+# Install database drivers using SYSTEM Python (not venv) - critical for PostgreSQL support
+RUN /usr/bin/python3 -m pip install --no-cache-dir --break-system-packages mysqlclient psycopg2-binary
 
 # Create data directory
 RUN mkdir -p /app/data && chown -R superset:superset /app/data
