@@ -3,6 +3,7 @@ from typing import Any, Dict, Optional
 from datetime import timedelta
 from functools import wraps
 import sqlalchemy
+from sqlalchemy.pool import NullPool
 
 # Read database URL from environment
 SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL")
@@ -21,12 +22,6 @@ def _patched_create_engine(*args, **kwargs):
     Wrapper around SQLAlchemy's create_engine that properly handles
     all timeout and pool-related parameters.
     """
-    # Parameters that should remain as integers (seconds)
-    int_params = ['pool_timeout', 'pool_size', 'max_overflow', 'echo_pool']
-    
-    # Parameters that need timedelta conversion
-    timedelta_params = ['pool_recycle']
-    
     # Handle pool_recycle conversion
     if 'pool_recycle' in kwargs:
         pool_recycle_value = kwargs['pool_recycle']
@@ -115,36 +110,65 @@ def DB_CONNECTION_MUTATOR(url, params, username, security_manager, source):
     """
     Mutator function for database connections added through the UI.
     Ensures proper parameter types and connection settings.
+    
+    CRITICAL: NullPool doesn't accept pooling parameters!
     """
     try:
-        # Ensure pool_pre_ping is enabled for reliability
-        if 'pool_pre_ping' not in params:
-            params['pool_pre_ping'] = True
+        # Check if NullPool is being used
+        poolclass = params.get('poolclass', None)
+        is_null_pool = poolclass is NullPool or (
+            isinstance(poolclass, type) and issubclass(poolclass, NullPool)
+        )
         
-        # Set reasonable pool sizes for data source connections
-        if 'pool_size' not in params:
-            params['pool_size'] = 5
-        if 'max_overflow' not in params:
-            params['max_overflow'] = 10
-        if 'pool_timeout' not in params:
-            params['pool_timeout'] = 30
-        if 'pool_recycle' not in params:
-            params['pool_recycle'] = 1800
+        # Log the pool class for debugging
+        db_name = getattr(url, 'database', 'unknown')
+        print(f"🔍 DB_CONNECTION_MUTATOR for database: {db_name}")
+        print(f"   Pool class: {poolclass}")
         
-        # Ensure all pool parameters are correct types
-        for param in ['pool_size', 'max_overflow', 'pool_timeout', 'pool_recycle']:
-            if param in params:
-                try:
-                    params[param] = int(params[param])
-                except (TypeError, ValueError):
-                    print(f"⚠️  Invalid {param} value, removing")
+        # For NullPool, only set pool_pre_ping and connect_args
+        if is_null_pool:
+            print(f"⚠️  NullPool detected - skipping pool size parameters")
+            # NullPool only accepts pool_pre_ping
+            if 'pool_pre_ping' not in params:
+                params['pool_pre_ping'] = True
+            
+            # Remove any pool sizing parameters that were added
+            for param in ['pool_size', 'max_overflow', 'pool_timeout', 'pool_recycle']:
+                if param in params:
+                    print(f"   Removing {param} (not compatible with NullPool)")
                     params.pop(param, None)
+        else:
+            # For regular pooling (QueuePool, etc.), add pool parameters
+            print(f"✅ Regular pooling detected - adding pool parameters")
+            
+            # Ensure pool_pre_ping is enabled for reliability
+            if 'pool_pre_ping' not in params:
+                params['pool_pre_ping'] = True
+            
+            # Set reasonable pool sizes for data source connections
+            if 'pool_size' not in params:
+                params['pool_size'] = 5
+            if 'max_overflow' not in params:
+                params['max_overflow'] = 10
+            if 'pool_timeout' not in params:
+                params['pool_timeout'] = 30
+            if 'pool_recycle' not in params:
+                params['pool_recycle'] = 1800
+            
+            # Ensure all pool parameters are correct types
+            for param in ['pool_size', 'max_overflow', 'pool_timeout', 'pool_recycle']:
+                if param in params:
+                    try:
+                        params[param] = int(params[param])
+                    except (TypeError, ValueError):
+                        print(f"⚠️  Invalid {param} value, removing")
+                        params.pop(param, None)
         
-        # Initialize connect_args if not present
+        # Initialize connect_args if not present (works for both pool types)
         if 'connect_args' not in params:
             params['connect_args'] = {}
         
-        # Set connection timeout for test connections
+        # Set connection timeout for all connections
         if 'connect_timeout' not in params['connect_args']:
             params['connect_args']['connect_timeout'] = TEST_DATABASE_CONNECTION_TIMEOUT
         
@@ -155,12 +179,12 @@ def DB_CONNECTION_MUTATOR(url, params, username, security_manager, source):
             except (TypeError, ValueError):
                 params['connect_args']['connect_timeout'] = TEST_DATABASE_CONNECTION_TIMEOUT
         
-        # Log for debugging
-        db_name = getattr(url, 'database', 'unknown')
-        print(f"✅ DB_CONNECTION_MUTATOR applied for database: {db_name}")
+        print(f"✅ DB_CONNECTION_MUTATOR completed for database: {db_name}")
         
     except Exception as e:
-        print(f"⚠️  Error in DB_CONNECTION_MUTATOR: {e}")
+        print(f"❌ Error in DB_CONNECTION_MUTATOR: {e}")
+        import traceback
+        traceback.print_exc()
         # Don't fail, just log the error
     
     return url, params
