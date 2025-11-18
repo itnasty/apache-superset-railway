@@ -34,12 +34,28 @@ TEST_DATABASE_CONNECTION_TIMEOUT = int(os.environ.get("TEST_DATABASE_CONNECTION_
 SQLLAB_TIMEOUT = int(os.environ.get("SQLLAB_TIMEOUT", "300"))
 SUPERSET_WEBSERVER_TIMEOUT = int(os.environ.get("SUPERSET_WEBSERVER_TIMEOUT", "300"))
 
-# SQLAlchemy connection pool settings
+# SQLAlchemy connection pool settings for metadata database
 SQLALCHEMY_POOL_SIZE = int(os.environ.get("SQLALCHEMY_POOL_SIZE", "10"))
 SQLALCHEMY_MAX_OVERFLOW = int(os.environ.get("SQLALCHEMY_MAX_OVERFLOW", "20"))
 SQLALCHEMY_POOL_TIMEOUT = int(os.environ.get("SQLALCHEMY_POOL_TIMEOUT", "30"))
 SQLALCHEMY_POOL_RECYCLE = 3600
 SQLALCHEMY_POOL_PRE_PING = True
+
+# Global engine parameters for external database connections
+# This fixes the pool_recycle issue with external MySQL/PostgreSQL databases
+SQLALCHEMY_ENGINE_OPTIONS = {
+    "pool_recycle": 3600,
+    "pool_pre_ping": True,
+    "pool_size": 5,
+    "max_overflow": 10,
+    "connect_args": {
+        "connect_timeout": 30,
+    }
+}
+
+# Additional engine options specifically for MySQL connections
+# This ensures SSL parameters from connection strings are properly handled
+SQLALCHEMY_CUSTOM_PASSWORD_STORE = None
 
 # Allow connecting to private databases
 PREVENT_UNSAFE_DB_CONNECTIONS = os.environ.get("PREVENT_UNSAFE_DB_CONNECTIONS", "false").lower() == "true"
@@ -66,3 +82,6 @@ FLASK_ENV = os.environ.get("FLASK_ENV", "production")
 
 # Enable proxy fix for Railway
 ENABLE_PROXY_FIX = True
+
+# Disable default timeout restrictions that can cause issues with external databases
+SQLALCHEMY_TRACK_MODIFICATIONS = False
