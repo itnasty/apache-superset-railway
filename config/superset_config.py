@@ -1,4 +1,5 @@
 import os
+from typing import Any, Dict, Optional
 
 # Read database URL from environment
 SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL")
@@ -34,17 +35,35 @@ SQLLAB_TIMEOUT = int(os.environ.get("SQLLAB_TIMEOUT", "300"))
 SUPERSET_WEBSERVER_TIMEOUT = int(os.environ.get("SUPERSET_WEBSERVER_TIMEOUT", "300"))
 
 # SQLAlchemy connection pool settings for metadata database
-# Keep these settings simple and compatible
 SQLALCHEMY_POOL_SIZE = int(os.environ.get("SQLALCHEMY_POOL_SIZE", "10"))
 SQLALCHEMY_MAX_OVERFLOW = int(os.environ.get("SQLALCHEMY_MAX_OVERFLOW", "20"))
 SQLALCHEMY_POOL_TIMEOUT = int(os.environ.get("SQLALCHEMY_POOL_TIMEOUT", "30"))
-# DO NOT SET SQLALCHEMY_POOL_RECYCLE - it causes issues with external databases
-# SQLAlchemy will use its default behavior which works correctly
 SQLALCHEMY_POOL_PRE_PING = True
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-# Engine options for all databases (metadata + external)
-# Only set pool_pre_ping, do NOT set pool_recycle
+# CRITICAL FIX: Hook into Superset's database engine creation
+# This function is called whenever Superset creates a database engine (for external databases)
+def DB_CONNECTION_MUTATOR(
+    uri: str,
+    params: Dict[str, Any],
+    username: Optional[str],
+    security_manager: Any,
+    source: Any,
+) -> None:
+    """
+    Mutator function to modify database connection parameters.
+    This prevents the pool_recycle error by removing it from params.
+    """
+    # Remove pool_recycle if it exists to prevent the total_seconds error
+    params.pop('pool_recycle', None)
+    
+    # Set safe connection pool parameters
+    params['pool_pre_ping'] = True
+    params['pool_size'] = 5
+    params['max_overflow'] = 10
+    params['pool_timeout'] = 30
+
+# Engine options - DO NOT include pool_recycle
 SQLALCHEMY_ENGINE_OPTIONS = {
     "pool_pre_ping": True,
 }
