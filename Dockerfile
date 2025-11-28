@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y \
 # Install database drivers in venv (pymysql, mysqlclient, psycopg2-binary)
 RUN python3 -m ensurepip --default-pip || true && \
     python3 -m pip install --upgrade pip && \
-    python3 -m pip install --no-cache-dir pymysql mysqlclient psycopg2-binary
+    python3 -m pip install --no-cache-dir pymysql mysqlclient psycopg2-binary flask-cors
 
 # Copy initialization script and config
 COPY /config/superset_init.sh ./superset_init.sh
